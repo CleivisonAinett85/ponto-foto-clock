@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import {
   SHIFT_LABELS,
