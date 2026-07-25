@@ -69,8 +69,20 @@ function SettingsPage() {
   }, []);
 
   const change = async (s: Shift) => {
+    if (s === "12x36") {
+      setShiftState("12x36");
+      await setShift("12x36");
+      setVariantPickerOpen(true);
+      return;
+    }
     setShiftState(s);
     await setShift(s);
+  };
+
+  const selectVariant = async (v: Shift1236Variant) => {
+    setVariant(v);
+    await setShift1236Variant(v);
+    setVariantPickerOpen(false);
   };
 
   const updateCustom = async (patch: Partial<CustomShift>) => {
@@ -82,11 +94,6 @@ function SettingsPage() {
   const toggleSnack = async (v: boolean) => {
     setSnack(v);
     await setSnackBreak(v);
-  };
-
-  const changeVariant = async (v: Shift1236Variant) => {
-    setVariant(v);
-    await setShift1236Variant(v);
   };
 
   const wipeMonth = async (offset: number) => {
