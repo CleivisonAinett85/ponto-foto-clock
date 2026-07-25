@@ -170,7 +170,7 @@ function TodayPage() {
           Turno:{" "}
           <span className="text-foreground font-medium">
             {shift === "12x36"
-              ? `12x36 ${variant === "noturno" ? "Noturno" : "Diurno"}`
+              ? `12x36 ${variant === "noturno" ? "🌙 Noturno" : "☀️ Diurno"}`
               : SHIFT_LABELS[shift]}
           </span>
         </p>
