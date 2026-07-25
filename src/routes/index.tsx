@@ -52,6 +52,10 @@ const QUICK_JUSTIFICATIONS = [
   "🔌 Sistema fora do ar",
 ];
 
+function isBreakExit(type: PunchType) {
+  return type === "saida_almoco" || type === "saida_lanche";
+}
+
 function formatDatePt(d: Date) {
   return d.toLocaleDateString("pt-BR", {
     weekday: "long",
