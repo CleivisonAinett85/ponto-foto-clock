@@ -57,6 +57,7 @@ function SettingsPage() {
     useState<Appearance>(DEFAULT_APPEARANCE);
   const [snack, setSnack] = useState(false);
   const [variant, setVariant] = useState<Shift1236Variant>("diurno");
+  const [variantPickerOpen, setVariantPickerOpen] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
