@@ -407,6 +407,60 @@ function SettingsPage() {
       <section className="px-5 mt-8 text-xs text-muted-foreground">
         <p>Todos os registros ficam salvos apenas neste dispositivo. Funciona offline.</p>
       </section>
+
+      {variantPickerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
+          onClick={() => setVariantPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold">Selecionar 12x36</h3>
+              <button
+                onClick={() => setVariantPickerOpen(false)}
+                className="p-2 rounded-lg bg-background"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <button
+              onClick={() => selectVariant("diurno")}
+              className={`w-full rounded-xl px-4 py-4 text-left font-medium transition ${
+                variant === "diurno"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">☀️</span>
+                <div>
+                  <div className="font-bold">Diurno</div>
+                  <div className="text-xs opacity-80">Saída Almoço / Volta Almoço</div>
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={() => selectVariant("noturno")}
+              className={`w-full rounded-xl px-4 py-4 text-left font-medium transition ${
+                variant === "noturno"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🌙</span>
+                <div>
+                  <div className="font-bold">Noturno</div>
+                  <div className="text-xs opacity-80">Saída Ceia / Volta Ceia</div>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
