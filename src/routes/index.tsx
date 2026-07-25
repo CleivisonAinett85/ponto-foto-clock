@@ -82,6 +82,11 @@ function TodayPage() {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
   const [customMin, setCustomMin] = useState("");
+  const [durationOpen, setDurationOpen] = useState(false);
+  const [durationCustomOpen, setDurationCustomOpen] = useState(false);
+  const [durationCustomMin, setDurationCustomMin] = useState("");
+  const [breakMinutes, setBreakMinutes] = useState(60);
+  const [breakStart, setBreakStart] = useState<number>(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const labels = getPunchLabels(shift, variant);
