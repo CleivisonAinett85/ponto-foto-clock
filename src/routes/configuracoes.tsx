@@ -297,7 +297,7 @@ function SettingsPage() {
                     : "bg-card text-foreground"
                 }`}
               >
-                {v === "diurno" ? "12x36 Diurno" : "12x36 Noturno"}
+                {v === "diurno" ? "🌞 12x36 Diurno" : "🌙 12x36 Noturno"}
                 <div className="text-xs font-normal opacity-70 mt-1">
                   {v === "diurno"
                     ? "Saída Almoço / Volta Almoço"
