@@ -52,6 +52,10 @@ const QUICK_JUSTIFICATIONS = [
   "🔌 Sistema fora do ar",
 ];
 
+function isBreakExit(type: PunchType) {
+  return type === "saida_almoco" || type === "saida_lanche";
+}
+
 function formatDatePt(d: Date) {
   return d.toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -82,6 +86,11 @@ function TodayPage() {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
   const [customMin, setCustomMin] = useState("");
+  const [durationOpen, setDurationOpen] = useState(false);
+  const [durationCustomOpen, setDurationCustomOpen] = useState(false);
+  const [durationCustomMin, setDurationCustomMin] = useState("");
+  const [breakMinutes, setBreakMinutes] = useState(60);
+  const [breakStart, setBreakStart] = useState<number>(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const labels = getPunchLabels(shift, variant);
@@ -108,11 +117,11 @@ function TodayPage() {
       r.onload = () => resolve(r.result as string);
       r.readAsDataURL(file);
     });
-    const wasMealExit = pending === "saida_almoco";
+    const wasMealExit = isBreakExit(pending);
     const updated = await savePunch(today, pending, dataUrl);
     setDay(updated);
     setPending(null);
-    if (wasMealExit) setNotifyOpen(true);
+    if (wasMealExit) startBreakFlow(updated[pending]?.time);
   };
 
   const chooseJustification = async (type: PunchType, text: string) => {
@@ -122,15 +131,31 @@ function TodayPage() {
     setJustifyFor(null);
     setManualFor(null);
     setManualText("");
-    if (type === "saida_almoco") setNotifyOpen(true);
+    if (isBreakExit(type)) startBreakFlow(updated[type]?.time);
   };
 
-  const scheduleReturn = async (minutes: number) => {
+  const startBreakFlow = (iso?: string) => {
+    setBreakStart(iso ? new Date(iso).getTime() : Date.now());
+    setDurationCustomOpen(false);
+    setDurationCustomMin("");
+    setDurationOpen(true);
+  };
+
+  const chooseDuration = (minutes: number) => {
+    setBreakMinutes(minutes);
+    setDurationOpen(false);
+    setDurationCustomOpen(false);
+    setDurationCustomMin("");
+    setCustomOpen(false);
+    setCustomMin("");
+    setNotifyOpen(true);
+  };
+
+  const scheduleReturn = async (minutesBefore: number) => {
     setNotifyOpen(false);
     setCustomOpen(false);
     setCustomMin("");
-    if (minutes <= 0) return;
-    const meal = labels.volta_almoco;
+    if (minutesBefore <= 0) return;
     try {
       if ("Notification" in window) {
         if (Notification.permission === "default") {
@@ -140,16 +165,18 @@ function TodayPage() {
     } catch {
       /* ignore */
     }
-    const ms = minutes * 60 * 1000;
+    const returnAt = breakStart + breakMinutes * 60 * 1000;
+    const ms = returnAt - minutesBefore * 60 * 1000 - Date.now();
+    if (ms <= 0) return;
     window.setTimeout(() => {
       try {
         if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("PontoFoto", {
-            body: `Faltam poucos minutos para ${meal.toLowerCase()}.`,
+          new Notification("PontoFoto: Seu retorno está chegando!", {
+            body: `Retorno às ${new Date(returnAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.`,
             icon: "/icon-192.png",
           });
         } else {
-          alert(`Lembrete: ${meal} em instantes.`);
+          alert("PontoFoto: Seu retorno está chegando!");
         }
       } catch {
         /* ignore */
@@ -315,6 +342,81 @@ function TodayPage() {
         </div>
       )}
 
+      {durationOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
+          onClick={() => {
+            setDurationOpen(false);
+            setDurationCustomOpen(false);
+          }}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold">
+                Qual é a duração do seu intervalo?
+              </h3>
+              <button
+                onClick={() => {
+                  setDurationOpen(false);
+                  setDurationCustomOpen(false);
+                }}
+                className="p-2 rounded-lg bg-background"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {!durationCustomOpen && (
+              <>
+                <button
+                  onClick={() => chooseDuration(60)}
+                  className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
+                >
+                  ⏱️ 1 hora (padrão CLT)
+                </button>
+                <button
+                  onClick={() => chooseDuration(90)}
+                  className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
+                >
+                  ⏱️ 1 hora e meia
+                </button>
+                <button
+                  onClick={() => setDurationCustomOpen(true)}
+                  className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
+                >
+                  ✏️ Personalizado
+                </button>
+              </>
+            )}
+
+            {durationCustomOpen && (
+              <>
+                <input
+                  type="number"
+                  min={1}
+                  value={durationCustomMin}
+                  onChange={(e) => setDurationCustomMin(e.target.value)}
+                  placeholder="Minutos"
+                  className="w-full rounded-xl bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none"
+                  autoFocus
+                />
+                <button
+                  disabled={!durationCustomMin || Number(durationCustomMin) <= 0}
+                  onClick={() => chooseDuration(Number(durationCustomMin))}
+                  className="w-full rounded-xl bg-primary text-primary-foreground px-4 py-4 font-bold disabled:opacity-50"
+                >
+                  Confirmar duração
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+
       {notifyOpen && (
         <div
           className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
@@ -348,7 +450,7 @@ function TodayPage() {
                   onClick={() => scheduleReturn(0)}
                   className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
                 >
-                  Não notificar
+                  🔕 Não notificar
                 </button>
                 {[5, 10, 15].map((m) => (
                   <button
@@ -356,7 +458,7 @@ function TodayPage() {
                     onClick={() => scheduleReturn(m)}
                     className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
                   >
-                    {m} minutos
+                    ⏰ {m} minutos antes
                   </button>
                 ))}
                 <button
