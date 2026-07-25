@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import {
   SHIFT_LABELS,
@@ -56,6 +57,7 @@ function SettingsPage() {
     useState<Appearance>(DEFAULT_APPEARANCE);
   const [snack, setSnack] = useState(false);
   const [variant, setVariant] = useState<Shift1236Variant>("diurno");
+  const [variantPickerOpen, setVariantPickerOpen] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -67,8 +69,20 @@ function SettingsPage() {
   }, []);
 
   const change = async (s: Shift) => {
+    if (s === "12x36") {
+      setShiftState("12x36");
+      await setShift("12x36");
+      setVariantPickerOpen(true);
+      return;
+    }
     setShiftState(s);
     await setShift(s);
+  };
+
+  const selectVariant = async (v: Shift1236Variant) => {
+    setVariant(v);
+    await setShift1236Variant(v);
+    setVariantPickerOpen(false);
   };
 
   const updateCustom = async (patch: Partial<CustomShift>) => {
@@ -80,11 +94,6 @@ function SettingsPage() {
   const toggleSnack = async (v: boolean) => {
     setSnack(v);
     await setSnackBreak(v);
-  };
-
-  const changeVariant = async (v: Shift1236Variant) => {
-    setVariant(v);
-    await setShift1236Variant(v);
   };
 
   const wipeMonth = async (offset: number) => {
@@ -273,7 +282,7 @@ function SettingsPage() {
                   : "bg-card text-foreground"
               }`}
             >
-              {s === "custom" && custom.name
+              {s === "custom" && custom.name && custom.name !== "Personalizado"
                 ? `${SHIFT_LABELS[s]} — ${custom.name}`
                 : SHIFT_LABELS[s]}
               {s === "adm" && (
@@ -281,32 +290,14 @@ function SettingsPage() {
                   Horário comercial (08h–18h)
                 </div>
               )}
+              {s === "12x36" && shift === "12x36" && (
+                <div className="text-xs font-normal opacity-70 mt-1">
+                  {variant === "diurno" ? "☀️ Diurno" : "🌙 Noturno"}
+                </div>
+              )}
             </button>
           ))}
         </div>
-
-        {shift === "12x36" && (
-          <div className="mt-3 space-y-2">
-            {(["diurno", "noturno"] as Shift1236Variant[]).map((v) => (
-              <button
-                key={v}
-                onClick={() => changeVariant(v)}
-                className={`w-full text-left rounded-xl px-4 py-4 font-medium transition ${
-                  variant === v
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-foreground"
-                }`}
-              >
-                {v === "diurno" ? "🌞 12x36 Diurno" : "🌙 12x36 Noturno"}
-                <div className="text-xs font-normal opacity-70 mt-1">
-                  {v === "diurno"
-                    ? "Saída Almoço / Volta Almoço"
-                    : "Saída Ceia / Volta Ceia"}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
 
         {shift === "custom" && (
           <div className="mt-4 rounded-xl bg-card p-4 space-y-3">
@@ -416,6 +407,60 @@ function SettingsPage() {
       <section className="px-5 mt-8 text-xs text-muted-foreground">
         <p>Todos os registros ficam salvos apenas neste dispositivo. Funciona offline.</p>
       </section>
+
+      {variantPickerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
+          onClick={() => setVariantPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold">Selecionar 12x36</h3>
+              <button
+                onClick={() => setVariantPickerOpen(false)}
+                className="p-2 rounded-lg bg-background"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <button
+              onClick={() => selectVariant("diurno")}
+              className={`w-full rounded-xl px-4 py-4 text-left font-medium transition ${
+                variant === "diurno"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">☀️</span>
+                <div>
+                  <div className="font-bold">Diurno</div>
+                  <div className="text-xs opacity-80">Saída Almoço / Volta Almoço</div>
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={() => selectVariant("noturno")}
+              className={`w-full rounded-xl px-4 py-4 text-left font-medium transition ${
+                variant === "noturno"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🌙</span>
+                <div>
+                  <div className="font-bold">Noturno</div>
+                  <div className="text-xs opacity-80">Saída Ceia / Volta Ceia</div>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
