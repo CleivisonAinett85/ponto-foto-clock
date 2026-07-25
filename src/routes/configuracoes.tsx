@@ -282,7 +282,7 @@ function SettingsPage() {
                   : "bg-card text-foreground"
               }`}
             >
-              {s === "custom" && custom.name
+              {s === "custom" && custom.name && custom.name !== "Personalizado"
                 ? `${SHIFT_LABELS[s]} — ${custom.name}`
                 : SHIFT_LABELS[s]}
               {s === "adm" && (
@@ -290,32 +290,14 @@ function SettingsPage() {
                   Horário comercial (08h–18h)
                 </div>
               )}
+              {s === "12x36" && shift === "12x36" && (
+                <div className="text-xs font-normal opacity-70 mt-1">
+                  {variant === "diurno" ? "☀️ Diurno" : "🌙 Noturno"}
+                </div>
+              )}
             </button>
           ))}
         </div>
-
-        {shift === "12x36" && (
-          <div className="mt-3 space-y-2">
-            {(["diurno", "noturno"] as Shift1236Variant[]).map((v) => (
-              <button
-                key={v}
-                onClick={() => changeVariant(v)}
-                className={`w-full text-left rounded-xl px-4 py-4 font-medium transition ${
-                  variant === v
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-foreground"
-                }`}
-              >
-                {v === "diurno" ? "🌞 12x36 Diurno" : "🌙 12x36 Noturno"}
-                <div className="text-xs font-normal opacity-70 mt-1">
-                  {v === "diurno"
-                    ? "Saída Almoço / Volta Almoço"
-                    : "Saída Ceia / Volta Ceia"}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
 
         {shift === "custom" && (
           <div className="mt-4 rounded-xl bg-card p-4 space-y-3">
