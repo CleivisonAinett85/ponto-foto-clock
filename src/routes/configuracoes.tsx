@@ -166,24 +166,24 @@ function SettingsPage() {
           </button>
 
           {appearance.mode === "color" && (
-            <>
-            <label className="rounded-xl bg-card p-4 flex items-center gap-3 cursor-pointer active:opacity-80 transition">
-              <span className="flex-1 text-base font-medium text-foreground">
-                Toque para escolher a cor
-              </span>
-              <span
-                className="h-10 w-10 rounded-full border-2 border-border shadow-inner"
-                style={{ backgroundColor: appearance.color }}
-              />
-              <input
-                type="color"
-                value={appearance.color}
-                onChange={(e) => updateAppearance({ color: e.target.value })}
-                className="sr-only"
-              />
-            </label>
-
             <div className="rounded-xl bg-card p-4 space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer active:opacity-80 transition">
+                <span className="flex-1 text-sm font-semibold text-foreground">
+                  Cor do fundo
+                </span>
+                <span
+                  className="h-10 w-10 rounded-full border-2 border-border shadow-inner"
+                  style={{ backgroundColor: appearance.color }}
+                />
+                <input
+                  type="color"
+                  value={appearance.color}
+                  aria-label="Cor do fundo"
+                  onChange={(e) => updateAppearance({ color: e.target.value })}
+                  className="sr-only"
+                />
+              </label>
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-foreground">
                   Opacidade da cor
@@ -229,7 +229,7 @@ function SettingsPage() {
                 </span>
               </div>
             </div>
-            </>
+            
           )}
 
           <button
