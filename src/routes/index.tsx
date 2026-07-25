@@ -342,6 +342,81 @@ function TodayPage() {
         </div>
       )}
 
+      {durationOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
+          onClick={() => {
+            setDurationOpen(false);
+            setDurationCustomOpen(false);
+          }}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold">
+                Qual é a duração do seu intervalo?
+              </h3>
+              <button
+                onClick={() => {
+                  setDurationOpen(false);
+                  setDurationCustomOpen(false);
+                }}
+                className="p-2 rounded-lg bg-background"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {!durationCustomOpen && (
+              <>
+                <button
+                  onClick={() => chooseDuration(60)}
+                  className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
+                >
+                  ⏱️ 1 hora (padrão CLT)
+                </button>
+                <button
+                  onClick={() => chooseDuration(90)}
+                  className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
+                >
+                  ⏱️ 1 hora e meia
+                </button>
+                <button
+                  onClick={() => setDurationCustomOpen(true)}
+                  className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
+                >
+                  ✏️ Personalizado
+                </button>
+              </>
+            )}
+
+            {durationCustomOpen && (
+              <>
+                <input
+                  type="number"
+                  min={1}
+                  value={durationCustomMin}
+                  onChange={(e) => setDurationCustomMin(e.target.value)}
+                  placeholder="Minutos"
+                  className="w-full rounded-xl bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none"
+                  autoFocus
+                />
+                <button
+                  disabled={!durationCustomMin || Number(durationCustomMin) <= 0}
+                  onClick={() => chooseDuration(Number(durationCustomMin))}
+                  className="w-full rounded-xl bg-primary text-primary-foreground px-4 py-4 font-bold disabled:opacity-50"
+                >
+                  Confirmar duração
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+
       {notifyOpen && (
         <div
           className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
