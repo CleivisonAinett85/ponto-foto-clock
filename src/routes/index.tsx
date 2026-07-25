@@ -113,11 +113,11 @@ function TodayPage() {
       r.onload = () => resolve(r.result as string);
       r.readAsDataURL(file);
     });
-    const wasMealExit = pending === "saida_almoco";
+    const wasMealExit = isBreakExit(pending);
     const updated = await savePunch(today, pending, dataUrl);
     setDay(updated);
     setPending(null);
-    if (wasMealExit) setNotifyOpen(true);
+    if (wasMealExit) startBreakFlow(updated[pending]?.time);
   };
 
   const chooseJustification = async (type: PunchType, text: string) => {
@@ -127,15 +127,31 @@ function TodayPage() {
     setJustifyFor(null);
     setManualFor(null);
     setManualText("");
-    if (type === "saida_almoco") setNotifyOpen(true);
+    if (isBreakExit(type)) startBreakFlow(updated[type]?.time);
   };
 
-  const scheduleReturn = async (minutes: number) => {
+  const startBreakFlow = (iso?: string) => {
+    setBreakStart(iso ? new Date(iso).getTime() : Date.now());
+    setDurationCustomOpen(false);
+    setDurationCustomMin("");
+    setDurationOpen(true);
+  };
+
+  const chooseDuration = (minutes: number) => {
+    setBreakMinutes(minutes);
+    setDurationOpen(false);
+    setDurationCustomOpen(false);
+    setDurationCustomMin("");
+    setCustomOpen(false);
+    setCustomMin("");
+    setNotifyOpen(true);
+  };
+
+  const scheduleReturn = async (minutesBefore: number) => {
     setNotifyOpen(false);
     setCustomOpen(false);
     setCustomMin("");
-    if (minutes <= 0) return;
-    const meal = labels.volta_almoco;
+    if (minutesBefore <= 0) return;
     try {
       if ("Notification" in window) {
         if (Notification.permission === "default") {
@@ -145,16 +161,18 @@ function TodayPage() {
     } catch {
       /* ignore */
     }
-    const ms = minutes * 60 * 1000;
+    const returnAt = breakStart + breakMinutes * 60 * 1000;
+    const ms = returnAt - minutesBefore * 60 * 1000 - Date.now();
+    if (ms <= 0) return;
     window.setTimeout(() => {
       try {
         if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("PontoFoto", {
-            body: `Faltam poucos minutos para ${meal.toLowerCase()}.`,
+          new Notification("PontoFoto: Seu retorno está chegando!", {
+            body: `Retorno às ${new Date(returnAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.`,
             icon: "/icon-192.png",
           });
         } else {
-          alert(`Lembrete: ${meal} em instantes.`);
+          alert("PontoFoto: Seu retorno está chegando!");
         }
       } catch {
         /* ignore */
