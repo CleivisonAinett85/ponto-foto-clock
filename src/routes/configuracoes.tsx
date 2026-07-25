@@ -229,7 +229,7 @@ function SettingsPage() {
                 </span>
               </div>
             </div>
-            </>
+            
           )}
 
           <button
