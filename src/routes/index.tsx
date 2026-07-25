@@ -450,7 +450,7 @@ function TodayPage() {
                   onClick={() => scheduleReturn(0)}
                   className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
                 >
-                  Não notificar
+                  🔕 Não notificar
                 </button>
                 {[5, 10, 15].map((m) => (
                   <button
@@ -458,7 +458,7 @@ function TodayPage() {
                     onClick={() => scheduleReturn(m)}
                     className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
                   >
-                    {m} minutos
+                    ⏰ {m} minutos antes
                   </button>
                 ))}
                 <button
