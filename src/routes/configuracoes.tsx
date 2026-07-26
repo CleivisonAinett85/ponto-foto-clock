@@ -58,6 +58,7 @@ function SettingsPage() {
   const [snack, setSnack] = useState(false);
   const [variant, setVariant] = useState<Shift1236Variant>("diurno");
   const [variantPickerOpen, setVariantPickerOpen] = useState(false);
+  const [wipeAsk, setWipeAsk] = useState<0 | -1 | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -96,11 +97,23 @@ function SettingsPage() {
     await setSnackBreak(v);
   };
 
-  const wipeMonth = async (offset: number) => {
+  const monthTarget = (offset: number) => {
     const now = new Date();
-    const target = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-    const label = target.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    if (!confirm(`Apagar todos os registros de ${label}?`)) return;
+    return new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  };
+
+  const monthLabel = (offset: number) => {
+    const l = monthTarget(offset).toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
+    return l.charAt(0).toUpperCase() + l.slice(1);
+  };
+
+  const wipeMonth = async (offset: number) => {
+    const target = monthTarget(offset);
+    const label = monthLabel(offset);
+    setWipeAsk(null);
     const count = await deleteMonth(target.getFullYear(), target.getMonth());
     setMsg(`${count} dia(s) apagado(s) de ${label}.`);
     setTimeout(() => setMsg(null), 3000);
@@ -381,7 +394,7 @@ function SettingsPage() {
         </h2>
         <div className="space-y-2">
           <button
-            onClick={() => wipeMonth(-1)}
+            onClick={() => setWipeAsk(-1)}
             className="w-full rounded-xl px-4 py-4 bg-card text-foreground text-left"
           >
             <div className="font-semibold">Apagar mês anterior</div>
@@ -390,7 +403,7 @@ function SettingsPage() {
             </div>
           </button>
           <button
-            onClick={() => wipeMonth(0)}
+            onClick={() => setWipeAsk(0)}
             className="w-full rounded-xl px-4 py-4 bg-card text-foreground text-left"
           >
             <div className="font-semibold">Apagar mês atual</div>
@@ -461,6 +474,44 @@ function SettingsPage() {
           </div>
         </div>
       )}
+
+      {wipeAsk !== null && (
+        <div
+          className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
+          onClick={() => setWipeAsk(null)}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold">
+              {wipeAsk === 0
+                ? `⚠️ Apagar registros de ${monthLabel(0)}?`
+                : `🗑️ Apagar registros de ${monthLabel(-1)}?`}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {wipeAsk === 0
+                ? "Esta ação é irreversível. Já validou seu espelho de ponto?"
+                : "Isso liberará espaço no celular. O espelho do mês anterior já foi validado?"}
+            </p>
+            <button
+              onClick={() => setWipeAsk(null)}
+              className="w-full rounded-xl bg-muted text-muted-foreground px-4 py-4 font-medium"
+            >
+              ❌ Cancelar
+            </button>
+            <button
+              onClick={() => wipeMonth(wipeAsk)}
+              className={`w-full rounded-xl px-4 py-4 font-bold text-primary-foreground ${
+                wipeAsk === 0 ? "bg-danger" : "bg-success"
+              }`}
+            >
+              {wipeAsk === 0 ? "🗑️ Sim, já validei e quero apagar" : "✅ Sim, apagar"}
+            </button>
+          </div>
+        </div>
+      )}
     </AppShell>
+
   );
 }
