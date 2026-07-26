@@ -110,6 +110,21 @@ function TodayPage() {
     setTimeout(() => inputRef.current?.click(), 0);
   };
 
+  const handlePunchTap = (type: PunchType) => {
+    if (day[type]) {
+      setReplaceAsk(type);
+      return;
+    }
+    const idx = order.indexOf(type);
+    const prev = idx > 0 ? order[idx - 1] : null;
+    if (prev && !day[prev]) {
+      setSeqAsk({ target: type, prev });
+      return;
+    }
+    setSheet(type);
+  };
+
+
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
