@@ -510,6 +510,88 @@ function TodayPage() {
           </div>
         </div>
       )}
+
+      {replaceAsk && (
+        <div
+          className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
+          onClick={() => setReplaceAsk(null)}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold">⚠️ Registro já realizado!</h3>
+            <p className="text-sm text-muted-foreground">
+              Você já registrou {labels[replaceAsk]} às{" "}
+              {formatTime(day[replaceAsk]!.time)} com{" "}
+              {day[replaceAsk]!.kind === "justification" ? "justificativa" : "foto"}.
+              Deseja substituir o registro atual?
+            </p>
+            <button
+              onClick={() => setReplaceAsk(null)}
+              className="w-full rounded-xl bg-muted text-muted-foreground px-4 py-4 font-medium"
+            >
+              ❌ Manter original
+            </button>
+            <button
+              onClick={() => {
+                const t = replaceAsk;
+                setReplaceAsk(null);
+                setSheet(t);
+              }}
+              className="w-full rounded-xl bg-warning text-primary-foreground px-4 py-4 font-bold"
+            >
+              🔄 Substituir registro
+            </button>
+          </div>
+        </div>
+      )}
+
+      {seqAsk && (
+        <div
+          className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
+          onClick={() => setSeqAsk(null)}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold">⚠️ Atenção!</h3>
+            <p className="text-sm text-muted-foreground">
+              Você ainda não registrou {labels[seqAsk.prev]}. Deseja justificar
+              antes de continuar?
+            </p>
+            <button
+              onClick={() => setSeqAsk(null)}
+              className="w-full rounded-xl bg-muted text-muted-foreground px-4 py-4 font-medium"
+            >
+              ❌ Cancelar
+            </button>
+            <button
+              onClick={() => {
+                const p = seqAsk.prev;
+                setSeqAsk(null);
+                setSheet(p);
+                setJustifyFor(p);
+              }}
+              className="w-full rounded-xl bg-warning text-primary-foreground px-4 py-4 font-bold"
+            >
+              📝 Justificar ponto anterior
+            </button>
+            <button
+              onClick={() => {
+                const t = seqAsk.target;
+                setSeqAsk(null);
+                setSheet(t);
+              }}
+              className="w-full rounded-xl bg-danger text-primary-foreground px-4 py-4 font-bold"
+            >
+              ➡️ Continuar mesmo assim
+            </button>
+          </div>
+        </div>
+      )}
     </AppShell>
+
   );
 }
