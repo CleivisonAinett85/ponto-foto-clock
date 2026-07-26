@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Calendar, Home, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { useAppearance } from "@/hooks/use-appearance";
-import { blendedBackground, isLightColor } from "@/lib/ponto-storage";
+import { blendedBackground, isLightColor, LIGHT_THEME_VARS } from "@/lib/ponto-storage";
 
 const NAV = [
   { to: "/", label: "Hoje", icon: Home },
