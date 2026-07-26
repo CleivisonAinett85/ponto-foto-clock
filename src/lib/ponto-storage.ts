@@ -220,8 +220,29 @@ export function dayHasJustification(day: DayRecords): boolean {
 
 export type AppearanceMode = "default" | "color" | "image";
 
+export type DefaultTheme = "dark" | "light";
+
+/** CSS variable overrides for the light "Fundo padrão" theme. */
+export const LIGHT_THEME_VARS: Record<string, string> = {
+  "--background": "#F5F5F5",
+  "--foreground": "#111111",
+  "--card": "#EEEEEE",
+  "--card-foreground": "#111111",
+  "--popover": "#EEEEEE",
+  "--popover-foreground": "#111111",
+  "--muted": "#E2E2E2",
+  "--muted-foreground": "#5A5A5A",
+  "--secondary": "#E2E2E2",
+  "--secondary-foreground": "#111111",
+  "--accent": "#E2E2E2",
+  "--accent-foreground": "#111111",
+  "--border": "#D6D6D6",
+  "--input": "#E2E2E2",
+};
+
 export interface Appearance {
   mode: AppearanceMode;
+  theme?: DefaultTheme;
   color: string; // hex, used when mode === "color"
   image: string | null; // dataURL, used when mode === "image"
   opacity?: number; // 10..100, used when mode === "color"
@@ -232,6 +253,7 @@ export const APPEARANCE_EVENT = "pf:appearance:changed";
 
 export const DEFAULT_APPEARANCE: Appearance = {
   mode: "default",
+  theme: "dark",
   color: "#1a1d24",
   image: null,
   opacity: 40,
@@ -246,6 +268,18 @@ export async function setAppearance(a: Appearance): Promise<void> {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(APPEARANCE_EVENT, { detail: a }));
   }
+}
+
+// ============= Welcome screen =============
+
+const WELCOME_KEY = "pf:welcome:seen";
+
+export async function getWelcomeSeen(): Promise<boolean> {
+  return (await get<boolean>(WELCOME_KEY)) ?? false;
+}
+
+export async function setWelcomeSeen(): Promise<void> {
+  await set(WELCOME_KEY, true);
 }
 
 // ============= Appearance helpers (presentation) =============
