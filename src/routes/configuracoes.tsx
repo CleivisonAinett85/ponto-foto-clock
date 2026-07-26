@@ -320,9 +320,7 @@ function SettingsPage() {
                   : "bg-card text-foreground"
               }`}
             >
-              {s === "custom" && custom.name && custom.name !== "Personalizado"
-                ? `${SHIFT_LABELS[s]} — ${custom.name}`
-                : SHIFT_LABELS[s]}
+              {SHIFT_LABELS[s]}
               {s === "adm" && (
                 <div className="text-xs font-normal opacity-70 mt-1">
                   Horário comercial (08h–18h)
