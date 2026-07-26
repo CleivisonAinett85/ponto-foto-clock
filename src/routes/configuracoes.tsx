@@ -337,18 +337,10 @@ function SettingsPage() {
 
         {shift === "custom" && (
           <div className="mt-4 rounded-xl bg-card p-4 space-y-3">
-            <div>
-              <label className="text-xs uppercase text-muted-foreground font-semibold">
-                Nome do turno
-              </label>
-              <input
-                type="text"
-                value={custom.name}
-                onChange={(e) => updateCustom({ name: e.target.value })}
-                placeholder="Ex.: Turno da tarde"
-                className="mt-1 w-full rounded-lg bg-background px-3 py-3 text-foreground outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Os nomes dos botões de registro são fixos. Aqui você define apenas
+              os horários de entrada e saída.
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs uppercase text-muted-foreground font-semibold">
