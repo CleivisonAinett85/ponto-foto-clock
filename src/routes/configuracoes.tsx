@@ -169,9 +169,34 @@ function SettingsPage() {
           >
             Fundo padrão
             <div className="text-xs font-normal opacity-70 mt-1">
-              Tema escuro original
+              {appearance.theme === "light" ? "Tema claro" : "Tema escuro"}
             </div>
           </button>
+
+          {appearance.mode === "default" && (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => updateAppearance({ mode: "default", theme: "dark" })}
+                className={`rounded-xl px-4 py-3 text-left font-medium transition ${
+                  (appearance.theme ?? "dark") === "dark"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-foreground"
+                }`}
+              >
+                🌙 Escuro
+              </button>
+              <button
+                onClick={() => updateAppearance({ mode: "default", theme: "light" })}
+                className={`rounded-xl px-4 py-3 text-left font-medium transition ${
+                  appearance.theme === "light"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-foreground"
+                }`}
+              >
+                ☀️ Claro
+              </button>
+            </div>
+          )}
 
           <button
             onClick={() => chooseMode("color")}
