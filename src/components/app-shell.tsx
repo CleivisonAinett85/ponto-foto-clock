@@ -35,7 +35,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
     : appearance.mode === "image" && appearance.image
       ? { backgroundColor: "#000" }
-      : undefined;
+      : appearance.theme === "light"
+        ? (LIGHT_THEME_VARS as React.CSSProperties)
+        : undefined;
+
 
   return (
     <div
