@@ -83,6 +83,8 @@ function TodayPage() {
   const [justifyFor, setJustifyFor] = useState<PunchType | null>(null);
   const [manualFor, setManualFor] = useState<PunchType | null>(null);
   const [manualText, setManualText] = useState("");
+  const [replaceAsk, setReplaceAsk] = useState<PunchType | null>(null);
+  const [seqAsk, setSeqAsk] = useState<{ target: PunchType; prev: PunchType } | null>(null);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
   const [customMin, setCustomMin] = useState("");
