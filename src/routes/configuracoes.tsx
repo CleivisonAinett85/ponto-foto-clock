@@ -96,11 +96,23 @@ function SettingsPage() {
     await setSnackBreak(v);
   };
 
-  const wipeMonth = async (offset: number) => {
+  const monthTarget = (offset: number) => {
     const now = new Date();
-    const target = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-    const label = target.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    if (!confirm(`Apagar todos os registros de ${label}?`)) return;
+    return new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  };
+
+  const monthLabel = (offset: number) => {
+    const l = monthTarget(offset).toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
+    return l.charAt(0).toUpperCase() + l.slice(1);
+  };
+
+  const wipeMonth = async (offset: number) => {
+    const target = monthTarget(offset);
+    const label = monthLabel(offset);
+    setWipeAsk(null);
     const count = await deleteMonth(target.getFullYear(), target.getMonth());
     setMsg(`${count} dia(s) apagado(s) de ${label}.`);
     setTimeout(() => setMsg(null), 3000);
