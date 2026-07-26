@@ -372,9 +372,7 @@ function TodayPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-bold">
-                Qual é a duração do seu intervalo?
-              </h3>
+              <h3 className="text-lg font-bold">⏱️ Duração do intervalo?</h3>
               <button
                 onClick={() => {
                   setDurationOpen(false);
@@ -392,13 +390,13 @@ function TodayPage() {
                   onClick={() => chooseDuration(60)}
                   className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
                 >
-                  ⏱️ 1 hora (padrão CLT)
+                  1 hora (padrão CLT)
                 </button>
                 <button
                   onClick={() => chooseDuration(90)}
                   className="w-full rounded-xl bg-background px-4 py-4 text-left font-medium"
                 >
-                  ⏱️ 1 hora e meia
+                  1 hora e meia
                 </button>
                 <button
                   onClick={() => setDurationCustomOpen(true)}
@@ -447,9 +445,7 @@ function TodayPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-bold">
-                Deseja ser notificado antes do retorno?
-              </h3>
+              <h3 className="text-lg font-bold">🔔 Notificar antes do retorno?</h3>
               <button
                 onClick={() => {
                   setNotifyOpen(false);
@@ -523,9 +519,8 @@ function TodayPage() {
             <h3 className="text-lg font-bold">⚠️ Registro já realizado!</h3>
             <p className="text-sm text-muted-foreground">
               Você já registrou {labels[replaceAsk]} às{" "}
-              {formatTime(day[replaceAsk]!.time)} com{" "}
-              {day[replaceAsk]!.kind === "justification" ? "justificativa" : "foto"}.
-              Deseja substituir o registro atual?
+              {formatTime(day[replaceAsk]!.time)}. Deseja substituir o registro
+              atual?
             </p>
             <button
               onClick={() => setReplaceAsk(null)}
