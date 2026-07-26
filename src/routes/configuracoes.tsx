@@ -394,7 +394,7 @@ function SettingsPage() {
         </h2>
         <div className="space-y-2">
           <button
-            onClick={() => wipeMonth(-1)}
+            onClick={() => setWipeAsk(-1)}
             className="w-full rounded-xl px-4 py-4 bg-card text-foreground text-left"
           >
             <div className="font-semibold">Apagar mês anterior</div>
@@ -403,7 +403,7 @@ function SettingsPage() {
             </div>
           </button>
           <button
-            onClick={() => wipeMonth(0)}
+            onClick={() => setWipeAsk(0)}
             className="w-full rounded-xl px-4 py-4 bg-card text-foreground text-left"
           >
             <div className="font-semibold">Apagar mês atual</div>
