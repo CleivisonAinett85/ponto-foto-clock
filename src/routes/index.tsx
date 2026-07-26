@@ -14,6 +14,8 @@ import {
   getShift,
   getShift1236Variant,
   getSnackBreak,
+  getWelcomeSeen,
+  setWelcomeSeen,
   savePunch,
   savePunchJustification,
 } from "@/lib/ponto-storage";
@@ -93,6 +95,9 @@ function TodayPage() {
   const [durationCustomMin, setDurationCustomMin] = useState("");
   const [breakMinutes, setBreakMinutes] = useState(60);
   const [breakStart, setBreakStart] = useState<number>(() => Date.now());
+  const [breakType, setBreakType] = useState<PunchType | null>(null);
+  const [reminders, setReminders] = useState<Partial<Record<PunchType, number>>>({});
+  const [welcome, setWelcome] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const labels = getPunchLabels(shift, variant);
@@ -103,7 +108,16 @@ function TodayPage() {
     getShift().then(setShiftState);
     getShift1236Variant().then(setVariant);
     getSnackBreak().then(setSnack);
+    getWelcomeSeen().then((seen) => setWelcome(!seen));
   }, [today]);
+
+  const closeWelcome = async () => {
+    setWelcome(false);
+    await setWelcomeSeen();
+  };
+
+  const returnPunch = (t: PunchType): PunchType | null =>
+    t === "saida_almoco" ? "volta_almoco" : t === "saida_lanche" ? "volta_lanche" : null;
 
   const openCamera = (type: PunchType) => {
     setPending(type);
@@ -137,21 +151,39 @@ function TodayPage() {
     const wasMealExit = isBreakExit(pending);
     const updated = await savePunch(today, pending, dataUrl);
     setDay(updated);
+    clearReminderFor(pending);
     setPending(null);
-    if (wasMealExit) startBreakFlow(updated[pending]?.time);
+    if (wasMealExit) startBreakFlow(updated[pending]?.time, pending);
   };
 
   const chooseJustification = async (type: PunchType, text: string) => {
     const updated = await savePunchJustification(today, type, text);
     setDay(updated);
+    clearReminderFor(type);
     setSheet(null);
     setJustifyFor(null);
     setManualFor(null);
     setManualText("");
-    if (isBreakExit(type)) startBreakFlow(updated[type]?.time);
+    if (isBreakExit(type)) startBreakFlow(updated[type]?.time, type);
   };
 
-  const startBreakFlow = (iso?: string) => {
+  const clearReminderFor = (type: PunchType) => {
+    const exit =
+      type === "volta_almoco"
+        ? "saida_almoco"
+        : type === "volta_lanche"
+          ? "saida_lanche"
+          : null;
+    if (!exit) return;
+    setReminders((r) => {
+      const next = { ...r };
+      delete next[exit as PunchType];
+      return next;
+    });
+  };
+
+  const startBreakFlow = (iso?: string, type?: PunchType) => {
+    if (type) setBreakType(type);
     setBreakStart(iso ? new Date(iso).getTime() : Date.now());
     setDurationCustomOpen(false);
     setDurationCustomMin("");
@@ -173,6 +205,10 @@ function TodayPage() {
     setCustomOpen(false);
     setCustomMin("");
     if (minutesBefore <= 0) return;
+    if (breakType) {
+      const bt = breakType;
+      setReminders((r) => ({ ...r, [bt]: minutesBefore }));
+    }
     try {
       if ("Notification" in window) {
         if (Notification.permission === "default") {
@@ -205,7 +241,7 @@ function TodayPage() {
     <AppShell>
       <div className="px-5 pt-8 pb-4">
         <p className="text-sm uppercase tracking-widest text-muted-foreground">
-          Hoje
+          HOJE
         </p>
         <h1 className="mt-1 text-2xl font-bold text-foreground capitalize">
           {formatDatePt(today)}
@@ -236,13 +272,21 @@ function TodayPage() {
                   <Camera className="h-7 w-7" />
                 )}
                 <div className="text-left">
-                  <div className="text-lg font-bold leading-tight">
+                  <div className="text-lg font-bold leading-tight flex items-center gap-2">
                     {labels[type]}
+                    {reminders[type] !== undefined &&
+                      !day[returnPunch(type) ?? type] && (
+                        <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
+                          ⏰ {reminders[type]} min
+                        </span>
+                      )}
                   </div>
                   {record && (
                     <div className="text-sm opacity-90">
-                      Registrado às {formatTime(record.time)}
-                      {record.kind === "justification" && " • Justificativa"}
+                      {record.kind === "justification" ? "📄" : "📷"} Registrado às{" "}
+                      {formatTime(record.time)}
+                      {record.kind === "justification" &&
+                        ` • Justificativa: ${record.justification}`}
                     </div>
                   )}
                 </div>
@@ -582,6 +626,23 @@ function TodayPage() {
               className="w-full rounded-xl bg-danger text-primary-foreground px-4 py-4 font-bold"
             >
               ➡️ Continuar mesmo assim
+            </button>
+          </div>
+        </div>
+      )}
+      {welcome && (
+        <div className="fixed inset-0 z-[60] bg-background/90 backdrop-blur flex items-center justify-center p-6">
+          <div className="w-full max-w-sm rounded-3xl bg-card p-6 space-y-4 text-center">
+            <h2 className="text-xl font-bold">Bem-vindo ao PontoFoto! 📷</h2>
+            <p className="text-sm text-muted-foreground">
+              Toque em cada botão para registrar seu ponto com foto ou
+              justificativa. Comece pela Entrada!
+            </p>
+            <button
+              onClick={closeWelcome}
+              className="w-full rounded-xl bg-success text-primary-foreground px-4 py-4 font-bold"
+            >
+              Entendido!
             </button>
           </div>
         </div>
