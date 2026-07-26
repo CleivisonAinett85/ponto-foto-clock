@@ -474,6 +474,44 @@ function SettingsPage() {
           </div>
         </div>
       )}
+
+      {wipeAsk !== null && (
+        <div
+          className="fixed inset-0 z-50 bg-background/70 backdrop-blur flex items-end justify-center"
+          onClick={() => setWipeAsk(null)}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold">
+              {wipeAsk === 0
+                ? `⚠️ Apagar registros de ${monthLabel(0)}?`
+                : `🗑️ Apagar registros de ${monthLabel(-1)}?`}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {wipeAsk === 0
+                ? "Esta ação é irreversível. Já validou seu espelho de ponto?"
+                : "Isso liberará espaço no celular. O espelho do mês anterior já foi validado?"}
+            </p>
+            <button
+              onClick={() => setWipeAsk(null)}
+              className="w-full rounded-xl bg-muted text-muted-foreground px-4 py-4 font-medium"
+            >
+              ❌ Cancelar
+            </button>
+            <button
+              onClick={() => wipeMonth(wipeAsk)}
+              className={`w-full rounded-xl px-4 py-4 font-bold text-primary-foreground ${
+                wipeAsk === 0 ? "bg-danger" : "bg-success"
+              }`}
+            >
+              {wipeAsk === 0 ? "🗑️ Sim, já validei e quero apagar" : "✅ Sim, apagar"}
+            </button>
+          </div>
+        </div>
+      )}
     </AppShell>
+
   );
 }
