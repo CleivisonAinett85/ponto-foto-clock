@@ -226,7 +226,7 @@ function TodayPage() {
           return (
             <button
               key={type}
-              onClick={() => setSheet(type)}
+              onClick={() => handlePunchTap(type)}
               className={`w-full rounded-2xl px-5 py-5 flex items-center justify-between shadow-lg active:scale-[0.98] transition ${PUNCH_COLORS[type]}`}
             >
               <div className="flex items-center gap-4">
