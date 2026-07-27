@@ -91,7 +91,7 @@ function CalendarPage() {
           <button onClick={prev} className="p-2 rounded-lg bg-card">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-xl font-bold">{MONTHS[month]} {year}</h1>
+          <h1 className="text-xl font-bold">{MONTHS[month]} de {year}</h1>
           <button onClick={next} className="p-2 rounded-lg bg-card">
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -134,9 +134,9 @@ function CalendarPage() {
         </div>
 
         <div className="mt-6 space-y-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-success" /> Dia completo</div>
-          <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-warning" /> Registro incompleto</div>
-          <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-info" /> Com justificativa</div>
+          <div className="flex items-center gap-2 whitespace-nowrap"><span className="h-2 w-2 rounded-full bg-success shrink-0" /> Dia completo</div>
+          <div className="flex items-center gap-2 whitespace-nowrap"><span className="h-2 w-2 rounded-full bg-warning shrink-0" /> Registro incompleto</div>
+          <div className="flex items-center gap-2 whitespace-nowrap"><span className="h-2 w-2 rounded-full bg-info shrink-0" /> 🔵 Com justificativa</div>
         </div>
       </div>
 
