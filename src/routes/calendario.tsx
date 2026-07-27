@@ -136,7 +136,7 @@ function CalendarPage() {
         <div className="mt-6 space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2 whitespace-nowrap"><span className="h-2 w-2 rounded-full bg-success shrink-0" /> Dia completo</div>
           <div className="flex items-center gap-2 whitespace-nowrap"><span className="h-2 w-2 rounded-full bg-warning shrink-0" /> Registro incompleto</div>
-          <div className="flex items-center gap-2 whitespace-nowrap"><span className="h-2 w-2 rounded-full bg-info shrink-0" /> 🔵 Com justificativa</div>
+          <div className="flex items-center gap-2 whitespace-nowrap"><span className="h-2 w-2 rounded-full bg-info shrink-0" /> Com justificativa</div>
         </div>
       </div>
 
