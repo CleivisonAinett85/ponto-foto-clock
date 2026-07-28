@@ -308,6 +308,9 @@ function TodayPage() {
       <div className="px-5 space-y-3">
         {order.map((type) => {
           const record = day[type];
+          const rem = activeReminder(type);
+          const back = returnPunch(type);
+          const breakOpen = !!rem && !(back && day[back]);
           return (
             <button
               key={type}
@@ -323,12 +326,11 @@ function TodayPage() {
                 <div className="text-left">
                   <div className="text-lg font-bold leading-tight flex items-center gap-2">
                     {labels[type]}
-                    {reminders[type] !== undefined &&
-                      !day[returnPunch(type) ?? type] && (
-                        <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
-                          ⏰ {reminders[type]} min
-                        </span>
-                      )}
+                    {breakOpen && rem!.minutesBefore > 0 && (
+                      <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
+                        ⏰ {rem!.minutesBefore} min
+                      </span>
+                    )}
                   </div>
                   {record && (
                     <div className="text-sm opacity-90">
@@ -338,8 +340,17 @@ function TodayPage() {
                         ` • Justificativa: ${record.justification}`}
                     </div>
                   )}
+                  {breakOpen && (
+                    <div className="text-sm opacity-90">
+                      ⏰ Retorno previsto às {formatClock(rem!.returnAt)}
+                      {rem!.minutesBefore > 0 && (
+                        <> • 🔔 Lembrete às {formatClock(rem!.notifyAt)}</>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+
               {record && (
                 <div className="bg-background/25 rounded-full p-2">
                   <Check className="h-6 w-6" strokeWidth={3} />
