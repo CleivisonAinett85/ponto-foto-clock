@@ -23,6 +23,12 @@ import {
   setShift1236Variant,
   blendedBackground,
   isLightColor,
+  type JourneySettings,
+  defaultJourney,
+  getJourney,
+  setJourney,
+  overtimeAllowed,
+  formatMinutes,
 } from "@/lib/ponto-storage";
 
 export const Route = createFileRoute("/configuracoes")({
@@ -59,6 +65,9 @@ function SettingsPage() {
   const [variant, setVariant] = useState<Shift1236Variant>("diurno");
   const [variantPickerOpen, setVariantPickerOpen] = useState(false);
   const [wipeAsk, setWipeAsk] = useState<0 | -1 | null>(null);
+  const [journey, setJourneyState] = useState<JourneySettings>(() =>
+    defaultJourney("1"),
+  );
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
