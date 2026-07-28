@@ -361,6 +361,64 @@ function TodayPage() {
         })}
       </div>
 
+      {permission === "denied" && (
+        <div className="mx-5 mt-4 rounded-xl bg-card p-4 text-sm text-muted-foreground">
+          🔕 As notificações estão bloqueadas para este site. Ative-as nas
+          configurações do navegador/Android (Configurações → Site → Notificações)
+          para receber o lembrete de retorno.
+        </div>
+      )}
+
+      <section className="px-5 mt-6">
+        <h2 className="text-sm font-semibold uppercase text-muted-foreground mb-2">
+          Jornada de hoje
+        </h2>
+        <div className="rounded-xl bg-card p-4 space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Regime</span>
+            <span className="text-foreground font-medium">
+              {shift === "12x36"
+                ? `12x36 ${variant === "noturno" ? "🌙 Noturno" : "☀️ Diurno"}`
+                : SHIFT_LABELS[shift]}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Jornada prevista</span>
+            <span className="text-foreground font-medium">
+              {formatMinutes(journey.expectedMinutes)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Total registrado</span>
+            <span className="text-foreground font-medium">
+              {workedMinutes(day) === null ? "—" : formatMinutes(workedMinutes(day)!)}
+            </span>
+          </div>
+          {journey.overtimeEnabled && overtimeAllowed(shift) ? (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Saldo</span>
+              <span className="text-foreground font-medium">
+                {workedMinutes(day) === null
+                  ? "—"
+                  : formatMinutes(workedMinutes(day)! - journey.expectedMinutes)}
+              </span>
+            </div>
+          ) : (
+            <p className="pt-1 text-xs text-muted-foreground">
+              {shift === "12x36"
+                ? "Cálculo automático de hora extra desativado para o regime 12x36."
+                : "Cálculo de horas extras desativado. Ative em Ajustes se desejar."}
+            </p>
+          )}
+          <p className="pt-2 text-[11px] text-muted-foreground">
+            Ferramenta de controle e organização pessoal da jornada. Não representa
+            apuração oficial nem garantia de pagamento.
+          </p>
+        </div>
+      </section>
+
+
+
       <input
         ref={inputRef}
         type="file"
