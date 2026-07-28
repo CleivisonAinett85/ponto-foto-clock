@@ -8,7 +8,10 @@ import {
   type PunchType,
   type Shift,
   type Shift1236Variant,
+  type JourneySettings,
+  defaultJourney,
   getDay,
+  getJourney,
   getPunchOrder,
   getPunchLabels,
   getShift,
@@ -18,7 +21,26 @@ import {
   setWelcomeSeen,
   savePunch,
   savePunchJustification,
+  workedMinutes,
+  formatMinutes,
+  overtimeAllowed,
 } from "@/lib/ponto-storage";
+import {
+  type BreakReminder,
+  cancelReminder,
+  checkDueReminders,
+  computeNotifyAt,
+  computeReturnAt,
+  ensureServiceWorker,
+  formatClock,
+  getReminders,
+  notificationPermission,
+  pruneReminders,
+  reminderId,
+  requestNotificationPermission,
+  saveReminder,
+  syncServiceWorker,
+} from "@/lib/break-reminders";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -96,20 +118,52 @@ function TodayPage() {
   const [breakMinutes, setBreakMinutes] = useState(60);
   const [breakStart, setBreakStart] = useState<number>(() => Date.now());
   const [breakType, setBreakType] = useState<PunchType | null>(null);
-  const [reminders, setReminders] = useState<Partial<Record<PunchType, number>>>({});
+  const [reminders, setReminders] = useState<Record<string, BreakReminder>>({});
+  const [permission, setPermission] = useState<string>("default");
+  const [journey, setJourneyState] = useState<JourneySettings>(() => defaultJourney("1"));
   const [welcome, setWelcome] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const labels = getPunchLabels(shift, variant);
   const order = getPunchOrder(snack);
+  const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   useEffect(() => {
     getDay(today).then(setDay);
-    getShift().then(setShiftState);
+    getShift().then((s) => {
+      setShiftState(s);
+      getJourney(s).then(setJourneyState);
+    });
     getShift1236Variant().then(setVariant);
     getSnackBreak().then(setSnack);
     getWelcomeSeen().then((seen) => setWelcome(!seen));
+    setPermission(notificationPermission());
   }, [today]);
+
+  // Restaura lembretes persistidos, reagenda no Service Worker (sem duplicar)
+  // e verifica pendências vencidas ao abrir/voltar para o app.
+  useEffect(() => {
+    let alive = true;
+    const refresh = async () => {
+      await ensureServiceWorker();
+      await pruneReminders();
+      await syncServiceWorker();
+      await checkDueReminders();
+      const all = await getReminders();
+      if (alive) setReminders(all);
+    };
+    refresh();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const iv = window.setInterval(refresh, 60_000); // rede de segurança
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(iv);
+    };
+  }, []);
 
   const closeWelcome = async () => {
     setWelcome(false);
@@ -118,6 +172,14 @@ function TodayPage() {
 
   const returnPunch = (t: PunchType): PunchType | null =>
     t === "saida_almoco" ? "volta_almoco" : t === "saida_lanche" ? "volta_lanche" : null;
+
+  const exitPunch = (t: PunchType): PunchType | null =>
+    t === "volta_almoco" ? "saida_almoco" : t === "volta_lanche" ? "saida_lanche" : null;
+
+  const activeReminder = (t: PunchType): BreakReminder | null => {
+    const r = reminders[reminderId(dateKey, t)];
+    return r && r.status === "pending" ? r : null;
+  };
 
   const openCamera = (type: PunchType) => {
     setPending(type);
@@ -151,7 +213,7 @@ function TodayPage() {
     const wasMealExit = isBreakExit(pending);
     const updated = await savePunch(today, pending, dataUrl);
     setDay(updated);
-    clearReminderFor(pending);
+    await clearReminderFor(pending);
     setPending(null);
     if (wasMealExit) startBreakFlow(updated[pending]?.time, pending);
   };
@@ -159,7 +221,7 @@ function TodayPage() {
   const chooseJustification = async (type: PunchType, text: string) => {
     const updated = await savePunchJustification(today, type, text);
     setDay(updated);
-    clearReminderFor(type);
+    await clearReminderFor(type);
     setSheet(null);
     setJustifyFor(null);
     setManualFor(null);
@@ -167,19 +229,12 @@ function TodayPage() {
     if (isBreakExit(type)) startBreakFlow(updated[type]?.time, type);
   };
 
-  const clearReminderFor = (type: PunchType) => {
-    const exit =
-      type === "volta_almoco"
-        ? "saida_almoco"
-        : type === "volta_lanche"
-          ? "saida_lanche"
-          : null;
+  /** Volta registrada → intervalo concluído; Saída substituída → lembrete antigo invalidado. */
+  const clearReminderFor = async (type: PunchType) => {
+    const exit = exitPunch(type) ?? (isBreakExit(type) ? type : null);
     if (!exit) return;
-    setReminders((r) => {
-      const next = { ...r };
-      delete next[exit as PunchType];
-      return next;
-    });
+    await cancelReminder(dateKey, exit, exitPunch(type) ? "done" : "cancelled");
+    setReminders(await getReminders());
   };
 
   const startBreakFlow = (iso?: string, type?: PunchType) => {
@@ -204,38 +259,32 @@ function TodayPage() {
     setNotifyOpen(false);
     setCustomOpen(false);
     setCustomMin("");
-    if (minutesBefore <= 0) return;
-    if (breakType) {
-      const bt = breakType;
-      setReminders((r) => ({ ...r, [bt]: minutesBefore }));
+    const type = breakType;
+    if (!type) return;
+
+    const returnAt = computeReturnAt(breakStart, breakMinutes);
+    const notifyAt = computeNotifyAt(returnAt, minutesBefore);
+
+    let perm = notificationPermission();
+    if (minutesBefore > 0 && perm === "default") {
+      perm = await requestNotificationPermission();
     }
-    try {
-      if ("Notification" in window) {
-        if (Notification.permission === "default") {
-          await Notification.requestPermission();
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-    const returnAt = breakStart + breakMinutes * 60 * 1000;
-    const ms = returnAt - minutesBefore * 60 * 1000 - Date.now();
-    if (ms <= 0) return;
-    window.setTimeout(() => {
-      try {
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("PontoFoto: Seu retorno está chegando!", {
-            body: `Retorno às ${new Date(returnAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.`,
-            icon: "/icon-192.png",
-          });
-        } else {
-          alert("PontoFoto: Seu retorno está chegando!");
-        }
-      } catch {
-        /* ignore */
-      }
-    }, ms);
+    setPermission(perm);
+
+    await saveReminder({
+      id: reminderId(dateKey, type),
+      dateKey,
+      type,
+      exitAt: breakStart,
+      durationMinutes: breakMinutes,
+      returnAt,
+      minutesBefore,
+      notifyAt,
+      status: minutesBefore > 0 ? "pending" : "cancelled",
+    });
+    setReminders(await getReminders());
   };
+
 
   return (
     <AppShell>
@@ -259,6 +308,9 @@ function TodayPage() {
       <div className="px-5 space-y-3">
         {order.map((type) => {
           const record = day[type];
+          const rem = activeReminder(type);
+          const back = returnPunch(type);
+          const breakOpen = !!rem && !(back && day[back]);
           return (
             <button
               key={type}
@@ -274,12 +326,11 @@ function TodayPage() {
                 <div className="text-left">
                   <div className="text-lg font-bold leading-tight flex items-center gap-2">
                     {labels[type]}
-                    {reminders[type] !== undefined &&
-                      !day[returnPunch(type) ?? type] && (
-                        <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
-                          ⏰ {reminders[type]} min
-                        </span>
-                      )}
+                    {breakOpen && rem!.minutesBefore > 0 && (
+                      <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
+                        ⏰ {rem!.minutesBefore} min
+                      </span>
+                    )}
                   </div>
                   {record && (
                     <div className="text-sm opacity-90">
@@ -289,8 +340,17 @@ function TodayPage() {
                         ` • Justificativa: ${record.justification}`}
                     </div>
                   )}
+                  {breakOpen && (
+                    <div className="text-sm opacity-90">
+                      ⏰ Retorno previsto às {formatClock(rem!.returnAt)}
+                      {rem!.minutesBefore > 0 && (
+                        <> • 🔔 Lembrete às {formatClock(rem!.notifyAt)}</>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+
               {record && (
                 <div className="bg-background/25 rounded-full p-2">
                   <Check className="h-6 w-6" strokeWidth={3} />
@@ -300,6 +360,64 @@ function TodayPage() {
           );
         })}
       </div>
+
+      {permission === "denied" && (
+        <div className="mx-5 mt-4 rounded-xl bg-card p-4 text-sm text-muted-foreground">
+          🔕 As notificações estão bloqueadas para este site. Ative-as nas
+          configurações do navegador/Android (Configurações → Site → Notificações)
+          para receber o lembrete de retorno.
+        </div>
+      )}
+
+      <section className="px-5 mt-6">
+        <h2 className="text-sm font-semibold uppercase text-muted-foreground mb-2">
+          Jornada de hoje
+        </h2>
+        <div className="rounded-xl bg-card p-4 space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Regime</span>
+            <span className="text-foreground font-medium">
+              {shift === "12x36"
+                ? `12x36 ${variant === "noturno" ? "🌙 Noturno" : "☀️ Diurno"}`
+                : SHIFT_LABELS[shift]}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Jornada prevista</span>
+            <span className="text-foreground font-medium">
+              {formatMinutes(journey.expectedMinutes)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Total registrado</span>
+            <span className="text-foreground font-medium">
+              {workedMinutes(day) === null ? "—" : formatMinutes(workedMinutes(day)!)}
+            </span>
+          </div>
+          {journey.overtimeEnabled && overtimeAllowed(shift) ? (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Saldo</span>
+              <span className="text-foreground font-medium">
+                {workedMinutes(day) === null
+                  ? "—"
+                  : formatMinutes(workedMinutes(day)! - journey.expectedMinutes)}
+              </span>
+            </div>
+          ) : (
+            <p className="pt-1 text-xs text-muted-foreground">
+              {shift === "12x36"
+                ? "Cálculo automático de hora extra desativado para o regime 12x36."
+                : "Cálculo de horas extras desativado. Ative em Ajustes se desejar."}
+            </p>
+          )}
+          <p className="pt-2 text-[11px] text-muted-foreground">
+            Ferramenta de controle e organização pessoal da jornada. Não representa
+            apuração oficial nem garantia de pagamento.
+          </p>
+        </div>
+      </section>
+
+
 
       <input
         ref={inputRef}
