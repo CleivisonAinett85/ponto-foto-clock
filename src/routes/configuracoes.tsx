@@ -405,6 +405,96 @@ function SettingsPage() {
 
       <section className="px-5 mt-8">
         <h2 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
+          Cálculo de jornada e horas extras
+        </h2>
+        <div className="rounded-xl bg-card p-4 space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Regime atual</span>
+            <span className="text-foreground font-medium">
+              {shift === "12x36"
+                ? `12x36 ${variant === "noturno" ? "🌙 Noturno" : "☀️ Diurno"}`
+                : SHIFT_LABELS[shift]}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Jornada atual</span>
+            <span className="text-foreground font-medium">
+              {formatMinutes(journey.expectedMinutes)}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Cálculo de horas extras</span>
+            <span className="text-foreground font-medium">
+              {journey.overtimeEnabled && overtimeAllowed(shift)
+                ? "Ativado"
+                : "Desativado"}
+            </span>
+          </div>
+
+          <div>
+            <label className="text-xs uppercase text-muted-foreground font-semibold">
+              Jornada prevista (horas:minutos)
+            </label>
+            <input
+              type="time"
+              value={`${String(Math.floor(journey.expectedMinutes / 60)).padStart(2, "0")}:${String(journey.expectedMinutes % 60).padStart(2, "0")}`}
+              onChange={(e) => {
+                const [h, m] = e.target.value.split(":").map(Number);
+                updateJourney({ expectedMinutes: (h || 0) * 60 + (m || 0) });
+              }}
+              className="mt-1 w-full rounded-lg bg-background px-3 py-3 text-foreground outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          {overtimeAllowed(shift) ? (
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="font-semibold text-foreground">
+                  Calcular horas extras
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Compara a jornada prevista com o tempo registrado.
+                </div>
+              </div>
+              <button
+                role="switch"
+                aria-checked={journey.overtimeEnabled}
+                aria-label="Calcular horas extras"
+                onClick={() =>
+                  updateJourney({ overtimeEnabled: !journey.overtimeEnabled })
+                }
+                className={`relative h-8 w-14 shrink-0 rounded-full transition ${
+                  journey.overtimeEnabled ? "bg-info" : "bg-background"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 h-6 w-6 rounded-full bg-foreground transition-all ${
+                    journey.overtimeEnabled ? "left-7" : "left-1"
+                  }`}
+                />
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              ℹ️ O cálculo automático de horas extras está desativado para o regime
+              12x36. Os horários de entrada, intervalo, saída e o total registrado
+              continuam sendo calculados e exibidos normalmente, sem classificar
+              tempo adicional como hora extra.
+            </p>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            O app apenas calcula conforme as configurações que você escolher e
+            apresenta os dados como registro pessoal de jornada. Não é apuração
+            oficial nem determinação de direito trabalhista ou garantia de
+            pagamento de horas extras.
+          </p>
+        </div>
+      </section>
+
+      <section className="px-5 mt-8">
+
+        <h2 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
           Memória
         </h2>
         <div className="space-y-2">
