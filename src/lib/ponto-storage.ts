@@ -203,6 +203,80 @@ export async function setCustomShift(c: CustomShift): Promise<void> {
   await set(CUSTOM_SHIFT_KEY, c);
 }
 
+// ============= Jornada e horas extras =============
+
+export interface JourneySettings {
+  /** Cálculo automático de horas extras (nunca ligado por padrão). */
+  overtimeEnabled: boolean;
+  /** Jornada prevista em minutos. */
+  expectedMinutes: number;
+}
+
+const JOURNEY_KEY = "pf:journey";
+
+export const DEFAULT_EXPECTED_MINUTES: Record<Shift, number> = {
+  "1": 8 * 60,
+  adm: 8 * 60,
+  "2": 8 * 60,
+  "3": 8 * 60,
+  "12x36": 12 * 60,
+  custom: 8 * 60,
+};
+
+/** O regime 12x36 nunca usa cálculo automático de hora extra. */
+export function overtimeAllowed(shift: Shift): boolean {
+  return shift !== "12x36";
+}
+
+export function defaultJourney(shift: Shift): JourneySettings {
+  return {
+    overtimeEnabled: false,
+    expectedMinutes: DEFAULT_EXPECTED_MINUTES[shift],
+  };
+}
+
+export async function getJourney(shift: Shift): Promise<JourneySettings> {
+  const all = (await get<Partial<Record<Shift, JourneySettings>>>(JOURNEY_KEY)) ?? {};
+  const stored = all[shift];
+  const base = defaultJourney(shift);
+  const merged = stored ? { ...base, ...stored } : base;
+  if (!overtimeAllowed(shift)) merged.overtimeEnabled = false;
+  return merged;
+}
+
+export async function setJourney(shift: Shift, j: JourneySettings): Promise<void> {
+  const all = (await get<Partial<Record<Shift, JourneySettings>>>(JOURNEY_KEY)) ?? {};
+  all[shift] = { ...j, overtimeEnabled: overtimeAllowed(shift) ? j.overtimeEnabled : false };
+  await set(JOURNEY_KEY, all);
+}
+
+/** Tempo total registrado no dia (entrada→saída menos intervalos), em minutos. */
+export function workedMinutes(day: DayRecords): number | null {
+  const entrada = day.entrada?.time;
+  const saida = day.saida?.time;
+  if (!entrada || !saida) return null;
+  let total =
+    (new Date(saida).getTime() - new Date(entrada).getTime()) / 60000;
+  const pairs: [PunchType, PunchType][] = [
+    ["saida_almoco", "volta_almoco"],
+    ["saida_lanche", "volta_lanche"],
+  ];
+  for (const [out, back] of pairs) {
+    const o = day[out]?.time;
+    const b = day[back]?.time;
+    if (o && b) {
+      total -= (new Date(b).getTime() - new Date(o).getTime()) / 60000;
+    }
+  }
+  return Math.max(0, Math.round(total));
+}
+
+export function formatMinutes(min: number): string {
+  const sign = min < 0 ? "-" : "";
+  const abs = Math.abs(min);
+  return `${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}h${String(abs % 60).padStart(2, "0")}`;
+}
+
 export function isDayComplete(day: DayRecords): boolean {
   return PUNCH_TYPES.every((t) => day[t]);
 }
