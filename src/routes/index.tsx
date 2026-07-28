@@ -8,7 +8,10 @@ import {
   type PunchType,
   type Shift,
   type Shift1236Variant,
+  type JourneySettings,
+  defaultJourney,
   getDay,
+  getJourney,
   getPunchOrder,
   getPunchLabels,
   getShift,
@@ -18,7 +21,26 @@ import {
   setWelcomeSeen,
   savePunch,
   savePunchJustification,
+  workedMinutes,
+  formatMinutes,
+  overtimeAllowed,
 } from "@/lib/ponto-storage";
+import {
+  type BreakReminder,
+  cancelReminder,
+  checkDueReminders,
+  computeNotifyAt,
+  computeReturnAt,
+  ensureServiceWorker,
+  formatClock,
+  getReminders,
+  notificationPermission,
+  pruneReminders,
+  reminderId,
+  requestNotificationPermission,
+  saveReminder,
+  syncServiceWorker,
+} from "@/lib/break-reminders";
 
 export const Route = createFileRoute("/")({
   head: () => ({
