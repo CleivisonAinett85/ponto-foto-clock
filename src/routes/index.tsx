@@ -118,20 +118,52 @@ function TodayPage() {
   const [breakMinutes, setBreakMinutes] = useState(60);
   const [breakStart, setBreakStart] = useState<number>(() => Date.now());
   const [breakType, setBreakType] = useState<PunchType | null>(null);
-  const [reminders, setReminders] = useState<Partial<Record<PunchType, number>>>({});
+  const [reminders, setReminders] = useState<Record<string, BreakReminder>>({});
+  const [permission, setPermission] = useState<string>("default");
+  const [journey, setJourneyState] = useState<JourneySettings>(() => defaultJourney("1"));
   const [welcome, setWelcome] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const labels = getPunchLabels(shift, variant);
   const order = getPunchOrder(snack);
+  const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   useEffect(() => {
     getDay(today).then(setDay);
-    getShift().then(setShiftState);
+    getShift().then((s) => {
+      setShiftState(s);
+      getJourney(s).then(setJourneyState);
+    });
     getShift1236Variant().then(setVariant);
     getSnackBreak().then(setSnack);
     getWelcomeSeen().then((seen) => setWelcome(!seen));
+    setPermission(notificationPermission());
   }, [today]);
+
+  // Restaura lembretes persistidos, reagenda no Service Worker (sem duplicar)
+  // e verifica pendências vencidas ao abrir/voltar para o app.
+  useEffect(() => {
+    let alive = true;
+    const refresh = async () => {
+      await ensureServiceWorker();
+      await pruneReminders();
+      await syncServiceWorker();
+      await checkDueReminders();
+      const all = await getReminders();
+      if (alive) setReminders(all);
+    };
+    refresh();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const iv = window.setInterval(refresh, 60_000); // rede de segurança
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(iv);
+    };
+  }, []);
 
   const closeWelcome = async () => {
     setWelcome(false);
@@ -140,6 +172,14 @@ function TodayPage() {
 
   const returnPunch = (t: PunchType): PunchType | null =>
     t === "saida_almoco" ? "volta_almoco" : t === "saida_lanche" ? "volta_lanche" : null;
+
+  const exitPunch = (t: PunchType): PunchType | null =>
+    t === "volta_almoco" ? "saida_almoco" : t === "volta_lanche" ? "saida_lanche" : null;
+
+  const activeReminder = (t: PunchType): BreakReminder | null => {
+    const r = reminders[reminderId(dateKey, t)];
+    return r && r.status === "pending" ? r : null;
+  };
 
   const openCamera = (type: PunchType) => {
     setPending(type);
@@ -173,7 +213,7 @@ function TodayPage() {
     const wasMealExit = isBreakExit(pending);
     const updated = await savePunch(today, pending, dataUrl);
     setDay(updated);
-    clearReminderFor(pending);
+    await clearReminderFor(pending);
     setPending(null);
     if (wasMealExit) startBreakFlow(updated[pending]?.time, pending);
   };
@@ -181,7 +221,7 @@ function TodayPage() {
   const chooseJustification = async (type: PunchType, text: string) => {
     const updated = await savePunchJustification(today, type, text);
     setDay(updated);
-    clearReminderFor(type);
+    await clearReminderFor(type);
     setSheet(null);
     setJustifyFor(null);
     setManualFor(null);
@@ -189,19 +229,12 @@ function TodayPage() {
     if (isBreakExit(type)) startBreakFlow(updated[type]?.time, type);
   };
 
-  const clearReminderFor = (type: PunchType) => {
-    const exit =
-      type === "volta_almoco"
-        ? "saida_almoco"
-        : type === "volta_lanche"
-          ? "saida_lanche"
-          : null;
+  /** Volta registrada → intervalo concluído; Saída substituída → lembrete antigo invalidado. */
+  const clearReminderFor = async (type: PunchType) => {
+    const exit = exitPunch(type) ?? (isBreakExit(type) ? type : null);
     if (!exit) return;
-    setReminders((r) => {
-      const next = { ...r };
-      delete next[exit as PunchType];
-      return next;
-    });
+    await cancelReminder(dateKey, exit, exitPunch(type) ? "done" : "cancelled");
+    setReminders(await getReminders());
   };
 
   const startBreakFlow = (iso?: string, type?: PunchType) => {
@@ -226,38 +259,32 @@ function TodayPage() {
     setNotifyOpen(false);
     setCustomOpen(false);
     setCustomMin("");
-    if (minutesBefore <= 0) return;
-    if (breakType) {
-      const bt = breakType;
-      setReminders((r) => ({ ...r, [bt]: minutesBefore }));
+    const type = breakType;
+    if (!type) return;
+
+    const returnAt = computeReturnAt(breakStart, breakMinutes);
+    const notifyAt = computeNotifyAt(returnAt, minutesBefore);
+
+    let perm = notificationPermission();
+    if (minutesBefore > 0 && perm === "default") {
+      perm = await requestNotificationPermission();
     }
-    try {
-      if ("Notification" in window) {
-        if (Notification.permission === "default") {
-          await Notification.requestPermission();
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-    const returnAt = breakStart + breakMinutes * 60 * 1000;
-    const ms = returnAt - minutesBefore * 60 * 1000 - Date.now();
-    if (ms <= 0) return;
-    window.setTimeout(() => {
-      try {
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("PontoFoto: Seu retorno está chegando!", {
-            body: `Retorno às ${new Date(returnAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.`,
-            icon: "/icon-192.png",
-          });
-        } else {
-          alert("PontoFoto: Seu retorno está chegando!");
-        }
-      } catch {
-        /* ignore */
-      }
-    }, ms);
+    setPermission(perm);
+
+    await saveReminder({
+      id: reminderId(dateKey, type),
+      dateKey,
+      type,
+      exitAt: breakStart,
+      durationMinutes: breakMinutes,
+      returnAt,
+      minutesBefore,
+      notifyAt,
+      status: minutesBefore > 0 ? "pending" : "cancelled",
+    });
+    setReminders(await getReminders());
   };
+
 
   return (
     <AppShell>
