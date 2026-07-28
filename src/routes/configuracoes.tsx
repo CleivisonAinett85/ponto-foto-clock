@@ -71,23 +71,30 @@ function SettingsPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    getShift().then(setShiftState);
+    getShift().then((s) => {
+      setShiftState(s);
+      getJourney(s).then(setJourneyState);
+    });
     getCustomShift().then(setCustom);
     getAppearance().then(setAppearanceState);
     getSnackBreak().then(setSnack);
     getShift1236Variant().then(setVariant);
   }, []);
 
+  const updateJourney = async (patch: Partial<JourneySettings>) => {
+    const next = { ...journey, ...patch };
+    if (!overtimeAllowed(shift)) next.overtimeEnabled = false;
+    setJourneyState(next);
+    await setJourney(shift, next);
+  };
+
   const change = async (s: Shift) => {
-    if (s === "12x36") {
-      setShiftState("12x36");
-      await setShift("12x36");
-      setVariantPickerOpen(true);
-      return;
-    }
     setShiftState(s);
     await setShift(s);
+    setJourneyState(await getJourney(s));
+    if (s === "12x36") setVariantPickerOpen(true);
   };
+
 
   const selectVariant = async (v: Shift1236Variant) => {
     setVariant(v);
