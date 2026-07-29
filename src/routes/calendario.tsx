@@ -194,6 +194,24 @@ function CalendarPage() {
           </div>
         </div>
       )}
+
+      {photo && (
+        <PhotoViewer
+          src={photo.src}
+          title={labels[photo.type]}
+          date={new Date(photo.time).toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          })}
+          time={new Date(photo.time).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+          onClose={() => setPhoto(null)}
+        />
+      )}
+
     </AppShell>
   );
 }
