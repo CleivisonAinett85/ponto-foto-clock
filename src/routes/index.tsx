@@ -811,6 +811,49 @@ function TodayPage() {
           </div>
         </div>
       )}
+
+      {evidence && day[evidence] &&
+        (day[evidence]!.kind === "photo" ? (
+          <PhotoViewer
+            src={day[evidence]!.photo!}
+            title={labels[evidence]}
+            date={formatDatePt(new Date(day[evidence]!.time))}
+            time={formatTime(day[evidence]!.time)}
+            onClose={() => setEvidence(null)}
+          />
+        ) : (
+          <div
+            className="fixed inset-0 z-[70] bg-background/90 backdrop-blur flex items-end justify-center"
+            onClick={() => setEvidence(null)}
+          >
+            <div
+              className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold">{labels[evidence]}</h3>
+                <button
+                  onClick={() => setEvidence(null)}
+                  aria-label="Fechar evidência"
+                  className="p-2 rounded-lg bg-background"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground capitalize">
+                {formatDatePt(new Date(day[evidence]!.time))} •{" "}
+                {formatTime(day[evidence]!.time)}
+              </p>
+              <div className="rounded-xl bg-background p-4 text-sm">
+                <div className="text-xs uppercase tracking-widest text-info mb-1">
+                  Justificativa
+                </div>
+                {day[evidence]!.justification}
+              </div>
+            </div>
+          </div>
+        ))}
+
       {welcome && (
         <div className="fixed inset-0 z-[60] bg-background/90 backdrop-blur flex items-center justify-center p-6">
           <div className="w-full max-w-sm rounded-3xl bg-card p-6 space-y-4 text-center">
