@@ -167,9 +167,19 @@ function CalendarPage() {
                           {r.justification}
                         </div>
                       ) : (
-                        <img src={r.photo} alt={labels[t]} className="w-full rounded-lg" />
+                        <button
+                          onClick={() => setPhoto({ type: t, src: r.photo!, time: r.time })}
+                          className="w-full"
+                          aria-label={`Ampliar evidência de ${labels[t]}`}
+                        >
+                          <img src={r.photo} alt={labels[t]} className="w-full rounded-lg" />
+                          <span className="mt-2 block text-xs text-muted-foreground">
+                            Toque para ampliar, dar zoom ou girar
+                          </span>
+                        </button>
                       )
                     ) : (
+
                       <p className="text-sm text-muted-foreground">Sem registro</p>
                     )}
                   </div>
