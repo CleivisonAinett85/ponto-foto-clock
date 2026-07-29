@@ -449,18 +449,103 @@ function SettingsPage() {
 
           <div>
             <label className="text-xs uppercase text-muted-foreground font-semibold">
-              Jornada prevista (horas:minutos)
+              Tipo de jornada
             </label>
-            <input
-              type="time"
-              value={`${String(Math.floor(journey.expectedMinutes / 60)).padStart(2, "0")}:${String(journey.expectedMinutes % 60).padStart(2, "0")}`}
-              onChange={(e) => {
-                const [h, m] = e.target.value.split(":").map(Number);
-                updateJourney({ expectedMinutes: (h || 0) * 60 + (m || 0) });
-              }}
-              className="mt-1 w-full rounded-lg bg-background px-3 py-3 text-foreground outline-none focus:ring-2 focus:ring-primary"
-            />
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {(
+                [
+                  ["previa", "Jornada prévia"],
+                  ["outro", "Outro horário"],
+                  ["personalizado", "Personalizado"],
+                ] as [JourneyMode, string][]
+              ).map(([m, label]) => (
+                <button
+                  key={m}
+                  onClick={() => changeJourneyMode(m)}
+                  className={`rounded-lg px-2 py-3 text-xs font-semibold transition ${
+                    journey.mode === m
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {journey.mode === "previa" && (
+            <p className="text-xs text-muted-foreground">
+              Usando a jornada já configurada para {SHIFT_LABELS[shift]}.
+            </p>
+          )}
+
+          {journey.mode === "outro" && (
+            <div>
+              <label className="text-xs uppercase text-muted-foreground font-semibold">
+                Escolher outro horário
+              </label>
+              <div className="mt-2 space-y-2">
+                {SHIFTS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() =>
+                      updateJourney({
+                        presetShift: s,
+                        expectedMinutes: DEFAULT_EXPECTED_MINUTES[s],
+                      })
+                    }
+                    className={`w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
+                      (journey.presetShift ?? shift) === s
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-foreground"
+                    }`}
+                  >
+                    {SHIFT_LABELS[s]} —{" "}
+                    {formatMinutes(DEFAULT_EXPECTED_MINUTES[s])}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {journey.mode === "personalizado" && (
+            <div className="grid grid-cols-2 gap-3">
+              {(
+                [
+                  ["entrada", "Entrada"],
+                  ["saidaAlmoco", "Saída almoço"],
+                  ["voltaAlmoco", "Volta almoço"],
+                  ["saida", "Saída"],
+                ] as [keyof JourneyTimes, string][]
+              ).map(([field, label]) => (
+                <div key={field}>
+                  <label className="text-xs uppercase text-muted-foreground font-semibold">
+                    {label}
+                  </label>
+                  <input
+                    type="time"
+                    value={journey.times[field]}
+                    aria-label={label}
+                    onChange={(e) => {
+                      const times = { ...journey.times, [field]: e.target.value };
+                      updateJourney({
+                        times,
+                        expectedMinutes: expectedFromTimes(times),
+                      });
+                    }}
+                    className="mt-1 w-full rounded-lg bg-background px-3 py-3 text-foreground outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            Alterar a jornada não apaga nenhum registro de ponto — serve apenas
+            como referência de cálculo.
+          </p>
+
 
           {overtimeAllowed(shift) ? (
             <div className="flex items-center gap-3">
