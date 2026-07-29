@@ -205,11 +205,27 @@ export async function setCustomShift(c: CustomShift): Promise<void> {
 
 // ============= Jornada e horas extras =============
 
+/** Como a jornada prevista é definida. */
+export type JourneyMode = "previa" | "outro" | "personalizado";
+
+export interface JourneyTimes {
+  entrada: string; // "HH:MM"
+  saidaAlmoco: string;
+  voltaAlmoco: string;
+  saida: string;
+}
+
 export interface JourneySettings {
   /** Cálculo automático de horas extras (nunca ligado por padrão). */
   overtimeEnabled: boolean;
   /** Jornada prevista em minutos. */
   expectedMinutes: number;
+  /** Origem da jornada prevista. */
+  mode: JourneyMode;
+  /** Turno de referência quando mode === "outro". */
+  presetShift?: Shift;
+  /** Horários manuais quando mode === "personalizado". */
+  times: JourneyTimes;
 }
 
 const JOURNEY_KEY = "pf:journey";
@@ -223,6 +239,29 @@ export const DEFAULT_EXPECTED_MINUTES: Record<Shift, number> = {
   custom: 8 * 60,
 };
 
+export const DEFAULT_JOURNEY_TIMES: Record<Shift, JourneyTimes> = {
+  "1": { entrada: "06:00", saidaAlmoco: "10:00", voltaAlmoco: "11:00", saida: "15:00" },
+  adm: { entrada: "08:00", saidaAlmoco: "12:00", voltaAlmoco: "13:00", saida: "17:00" },
+  "2": { entrada: "14:00", saidaAlmoco: "18:00", voltaAlmoco: "19:00", saida: "23:00" },
+  "3": { entrada: "22:00", saidaAlmoco: "02:00", voltaAlmoco: "03:00", saida: "06:00" },
+  "12x36": { entrada: "07:00", saidaAlmoco: "12:00", voltaAlmoco: "13:00", saida: "19:00" },
+  custom: { entrada: "08:00", saidaAlmoco: "12:00", voltaAlmoco: "13:00", saida: "17:00" },
+};
+
+function hhmmToMinutes(v: string): number {
+  const [h, m] = v.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/** Jornada prevista (em minutos) a partir de horários, descontando o intervalo. */
+export function expectedFromTimes(t: JourneyTimes): number {
+  const wrap = (start: number, end: number) =>
+    end >= start ? end - start : end + 24 * 60 - start;
+  const total = wrap(hhmmToMinutes(t.entrada), hhmmToMinutes(t.saida));
+  const brk = wrap(hhmmToMinutes(t.saidaAlmoco), hhmmToMinutes(t.voltaAlmoco));
+  return Math.max(0, total - brk);
+}
+
 /** O regime 12x36 nunca usa cálculo automático de hora extra. */
 export function overtimeAllowed(shift: Shift): boolean {
   return shift !== "12x36";
@@ -232,6 +271,8 @@ export function defaultJourney(shift: Shift): JourneySettings {
   return {
     overtimeEnabled: false,
     expectedMinutes: DEFAULT_EXPECTED_MINUTES[shift],
+    mode: "previa",
+    times: DEFAULT_JOURNEY_TIMES[shift],
   };
 }
 
@@ -240,6 +281,7 @@ export async function getJourney(shift: Shift): Promise<JourneySettings> {
   const stored = all[shift];
   const base = defaultJourney(shift);
   const merged = stored ? { ...base, ...stored } : base;
+  merged.times = { ...base.times, ...(stored?.times ?? {}) };
   if (!overtimeAllowed(shift)) merged.overtimeEnabled = false;
   return merged;
 }
@@ -249,6 +291,35 @@ export async function setJourney(shift: Shift, j: JourneySettings): Promise<void
   all[shift] = { ...j, overtimeEnabled: overtimeAllowed(shift) ? j.overtimeEnabled : false };
   await set(JOURNEY_KEY, all);
 }
+
+/** Minutos de intervalo registrados no dia (almoço + lanche), quando fechados. */
+export function breakMinutes(day: DayRecords): number | null {
+  const pairs: [PunchType, PunchType][] = [
+    ["saida_almoco", "volta_almoco"],
+    ["saida_lanche", "volta_lanche"],
+  ];
+  let total = 0;
+  let any = false;
+  for (const [out, back] of pairs) {
+    const o = day[out]?.time;
+    const b = day[back]?.time;
+    if (o && b) {
+      any = true;
+      total += (new Date(b).getTime() - new Date(o).getTime()) / 60000;
+    }
+  }
+  return any ? Math.max(0, Math.round(total)) : null;
+}
+
+export type JourneyStatus = "empty" | "in_progress" | "complete";
+
+/** Estado da jornada do dia com base nos registros reais (nunca inventa horários). */
+export function journeyStatus(day: DayRecords): JourneyStatus {
+  const filled = PUNCH_TYPES.filter((t) => day[t]).length;
+  if (filled === 0) return "empty";
+  return filled === PUNCH_TYPES.length ? "complete" : "in_progress";
+}
+
 
 /** Tempo total registrado no dia (entrada→saída menos intervalos), em minutos. */
 export function workedMinutes(day: DayRecords): number | null {

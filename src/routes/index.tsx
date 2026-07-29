@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Check, Camera, FileText, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { PhotoViewer } from "@/components/photo-viewer";
+
 import {
   SHIFT_LABELS,
   type DayRecords,
@@ -22,8 +24,11 @@ import {
   savePunch,
   savePunchJustification,
   workedMinutes,
+  breakMinutes as computeBreakMinutes,
+  journeyStatus,
   formatMinutes,
   overtimeAllowed,
+
 } from "@/lib/ponto-storage";
 import {
   type BreakReminder,
@@ -61,14 +66,17 @@ export const Route = createFileRoute("/")({
   component: TodayPage,
 });
 
+// Tons levemente suavizados: mantêm a identidade/diferenciação de cada
+// registro, porém menos intensos visualmente.
 const PUNCH_COLORS: Record<PunchType, string> = {
-  entrada: "bg-success text-primary-foreground",
-  saida_almoco: "bg-warning text-primary-foreground",
-  volta_almoco: "bg-warning text-primary-foreground",
-  saida_lanche: "bg-info text-primary-foreground",
-  volta_lanche: "bg-info text-primary-foreground",
-  saida: "bg-danger text-primary-foreground",
+  entrada: "bg-success/80 text-primary-foreground",
+  saida_almoco: "bg-warning/80 text-primary-foreground",
+  volta_almoco: "bg-warning/70 text-primary-foreground",
+  saida_lanche: "bg-info/80 text-primary-foreground",
+  volta_lanche: "bg-info/70 text-primary-foreground",
+  saida: "bg-danger/80 text-primary-foreground",
 };
+
 
 const QUICK_JUSTIFICATIONS = [
   "Sem papel no relógio de ponto",
@@ -122,10 +130,16 @@ function TodayPage() {
   const [permission, setPermission] = useState<string>("default");
   const [journey, setJourneyState] = useState<JourneySettings>(() => defaultJourney("1"));
   const [welcome, setWelcome] = useState(false);
+  const [evidence, setEvidence] = useState<PunchType | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const labels = getPunchLabels(shift, variant);
   const order = getPunchOrder(snack);
+  const worked = workedMinutes(day);
+  const breakToday = computeBreakMinutes(day);
+  const status = journeyStatus(day);
+
   const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   useEffect(() => {
@@ -312,54 +326,72 @@ function TodayPage() {
           const back = returnPunch(type);
           const breakOpen = !!rem && !(back && day[back]);
           return (
-            <button
+            <div
               key={type}
-              onClick={() => handlePunchTap(type)}
-              className={`w-full rounded-2xl px-5 py-5 flex items-center justify-between shadow-lg active:scale-[0.98] transition ${PUNCH_COLORS[type]}`}
+              className={`rounded-2xl shadow-md ${PUNCH_COLORS[type]}`}
             >
-              <div className="flex items-center gap-4">
-                {record?.kind === "justification" ? (
-                  <FileText className="h-7 w-7" />
-                ) : (
-                  <Camera className="h-7 w-7" />
-                )}
-                <div className="text-left">
-                  <div className="text-lg font-bold leading-tight flex items-center gap-2">
-                    {labels[type]}
-                    {breakOpen && rem!.minutesBefore > 0 && (
-                      <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
-                        ⏰ {rem!.minutesBefore} min
-                      </span>
-                    )}
-                  </div>
-                  {record && (
-                    <div className="text-sm opacity-90">
-                      {record.kind === "justification" ? "📄" : "📷"} Registrado às{" "}
-                      {formatTime(record.time)}
-                      {record.kind === "justification" &&
-                        ` • Justificativa: ${record.justification}`}
-                    </div>
+              <button
+                onClick={() => handlePunchTap(type)}
+                className="w-full rounded-2xl px-5 py-5 flex items-center justify-between active:scale-[0.98] transition"
+              >
+                <div className="flex items-center gap-4">
+                  {record?.kind === "justification" ? (
+                    <FileText className="h-7 w-7" />
+                  ) : (
+                    <Camera className="h-7 w-7" />
                   )}
-                  {breakOpen && (
-                    <div className="text-sm opacity-90">
-                      ⏰ Retorno previsto às {formatClock(rem!.returnAt)}
-                      {rem!.minutesBefore > 0 && (
-                        <> • 🔔 Lembrete às {formatClock(rem!.notifyAt)}</>
+                  <div className="text-left">
+                    <div className="text-lg font-bold leading-tight flex items-center gap-2">
+                      {labels[type]}
+                      {breakOpen && rem!.minutesBefore > 0 && (
+                        <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
+                          ⏰ {rem!.minutesBefore} min
+                        </span>
                       )}
                     </div>
-                  )}
+                    {record && (
+                      <div className="text-sm opacity-90">
+                        {record.kind === "justification" ? "📄" : "📷"} Registrado às{" "}
+                        {formatTime(record.time)}
+                        {record.kind === "justification" &&
+                          ` • Justificativa: ${record.justification}`}
+                      </div>
+                    )}
+                    {breakOpen && (
+                      <div className="text-sm opacity-90">
+                        ⏰ Retorno previsto às {formatClock(rem!.returnAt)}
+                        {rem!.minutesBefore > 0 && (
+                          <> • 🔔 Lembrete às {formatClock(rem!.notifyAt)}</>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+
+                {record && (
+                  <div className="bg-background/25 rounded-full p-2">
+                    <Check className="h-6 w-6" strokeWidth={3} />
+                  </div>
+                )}
+              </button>
 
               {record && (
-                <div className="bg-background/25 rounded-full p-2">
-                  <Check className="h-6 w-6" strokeWidth={3} />
+                <div className="px-4 pb-4 -mt-1">
+                  <button
+                    onClick={() => setEvidence(type)}
+                    className="w-full rounded-xl bg-background/20 px-3 py-2 text-xs font-semibold active:opacity-80 transition"
+                  >
+                    {record.kind === "photo"
+                      ? "📷 Ver evidência"
+                      : "📄 Ver justificativa"}
+                  </button>
                 </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
+
 
       {permission === "denied" && (
         <div className="mx-5 mt-4 rounded-xl bg-card p-4 text-sm text-muted-foreground">
@@ -374,6 +406,16 @@ function TodayPage() {
           Jornada de hoje
         </h2>
         <div className="rounded-xl bg-card p-4 space-y-1 text-sm">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Situação</span>
+            <span className="text-foreground font-medium text-right">
+              {status === "empty"
+                ? "Sem registros hoje"
+                : status === "in_progress"
+                  ? "⏳ Jornada em andamento (registro incompleto)"
+                  : "✅ Jornada concluída"}
+            </span>
+          </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Regime</span>
             <span className="text-foreground font-medium">
@@ -389,18 +431,32 @@ function TodayPage() {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Total registrado</span>
+            <span className="text-muted-foreground">Intervalo registrado</span>
             <span className="text-foreground font-medium">
-              {workedMinutes(day) === null ? "—" : formatMinutes(workedMinutes(day)!)}
+              {breakToday === null ? "—" : formatMinutes(breakToday)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Tempo trabalhado</span>
+            <span className="text-foreground font-medium">
+              {worked === null ? "—" : formatMinutes(worked)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Diferença</span>
+            <span className="text-foreground font-medium">
+              {worked === null
+                ? "—"
+                : formatMinutes(worked - journey.expectedMinutes)}
             </span>
           </div>
           {journey.overtimeEnabled && overtimeAllowed(shift) ? (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Saldo</span>
+              <span className="text-muted-foreground">Saldo de horas extras</span>
               <span className="text-foreground font-medium">
-                {workedMinutes(day) === null
+                {worked === null
                   ? "—"
-                  : formatMinutes(workedMinutes(day)! - journey.expectedMinutes)}
+                  : formatMinutes(worked - journey.expectedMinutes)}
               </span>
             </div>
           ) : (
@@ -410,9 +466,16 @@ function TodayPage() {
                 : "Cálculo de horas extras desativado. Ative em Ajustes se desejar."}
             </p>
           )}
+          {worked === null && status !== "empty" && (
+            <p className="pt-1 text-xs text-muted-foreground">
+              Registro incompleto — o cálculo só é concluído com Entrada e Saída
+              registradas.
+            </p>
+          )}
           <p className="pt-2 text-[11px] text-muted-foreground">
             Ferramenta de controle e organização pessoal da jornada. Não representa
             apuração oficial nem garantia de pagamento.
+
           </p>
         </div>
       </section>
@@ -748,6 +811,49 @@ function TodayPage() {
           </div>
         </div>
       )}
+
+      {evidence && day[evidence] &&
+        (day[evidence]!.kind === "photo" ? (
+          <PhotoViewer
+            src={day[evidence]!.photo!}
+            title={labels[evidence]}
+            date={formatDatePt(new Date(day[evidence]!.time))}
+            time={formatTime(day[evidence]!.time)}
+            onClose={() => setEvidence(null)}
+          />
+        ) : (
+          <div
+            className="fixed inset-0 z-[70] bg-background/90 backdrop-blur flex items-end justify-center"
+            onClick={() => setEvidence(null)}
+          >
+            <div
+              className="w-full max-w-md bg-card rounded-t-3xl p-5 pb-8 space-y-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold">{labels[evidence]}</h3>
+                <button
+                  onClick={() => setEvidence(null)}
+                  aria-label="Fechar evidência"
+                  className="p-2 rounded-lg bg-background"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground capitalize">
+                {formatDatePt(new Date(day[evidence]!.time))} •{" "}
+                {formatTime(day[evidence]!.time)}
+              </p>
+              <div className="rounded-xl bg-background p-4 text-sm">
+                <div className="text-xs uppercase tracking-widest text-info mb-1">
+                  Justificativa
+                </div>
+                {day[evidence]!.justification}
+              </div>
+            </div>
+          </div>
+        ))}
+
       {welcome && (
         <div className="fixed inset-0 z-[60] bg-background/90 backdrop-blur flex items-center justify-center p-6">
           <div className="w-full max-w-sm rounded-3xl bg-card p-6 space-y-4 text-center">

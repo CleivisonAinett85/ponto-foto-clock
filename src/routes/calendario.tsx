@@ -2,8 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { PhotoViewer } from "@/components/photo-viewer";
 import {
   type DayRecords,
+  type PunchType,
+
   type Shift,
   type Shift1236Variant,
   getMonth,
@@ -47,6 +50,8 @@ function CalendarPage() {
   const [month, setMonth] = useState(now.getMonth());
   const [data, setData] = useState<Record<string, DayRecords>>({});
   const [selected, setSelected] = useState<{ key: string; day: DayRecords } | null>(null);
+  const [photo, setPhoto] = useState<{ type: PunchType; src: string; time: string } | null>(null);
+
   const [shift, setShiftState] = useState<Shift>("1");
   const [variant, setVariant] = useState<Shift1236Variant>("diurno");
   const [snack, setSnack] = useState(false);
@@ -167,9 +172,19 @@ function CalendarPage() {
                           {r.justification}
                         </div>
                       ) : (
-                        <img src={r.photo} alt={labels[t]} className="w-full rounded-lg" />
+                        <button
+                          onClick={() => setPhoto({ type: t, src: r.photo!, time: r.time })}
+                          className="w-full"
+                          aria-label={`Ampliar evidência de ${labels[t]}`}
+                        >
+                          <img src={r.photo} alt={labels[t]} className="w-full rounded-lg" />
+                          <span className="mt-2 block text-xs text-muted-foreground">
+                            Toque para ampliar, dar zoom ou girar
+                          </span>
+                        </button>
                       )
                     ) : (
+
                       <p className="text-sm text-muted-foreground">Sem registro</p>
                     )}
                   </div>
@@ -179,6 +194,24 @@ function CalendarPage() {
           </div>
         </div>
       )}
+
+      {photo && (
+        <PhotoViewer
+          src={photo.src}
+          title={labels[photo.type]}
+          date={new Date(photo.time).toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          })}
+          time={new Date(photo.time).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+          onClose={() => setPhoto(null)}
+        />
+      )}
+
     </AppShell>
   );
 }
