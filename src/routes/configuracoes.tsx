@@ -581,8 +581,9 @@ function SettingsPage() {
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <div className="font-semibold text-foreground">
-                  Calcular horas extras
+                  Horas extras
                 </div>
+
                 <div className="text-sm text-muted-foreground">
                   Compara a jornada prevista com o tempo registrado.
                 </div>
