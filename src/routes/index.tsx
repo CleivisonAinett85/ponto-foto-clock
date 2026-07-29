@@ -136,6 +136,10 @@ function TodayPage() {
 
   const labels = getPunchLabels(shift, variant);
   const order = getPunchOrder(snack);
+  const worked = workedMinutes(day);
+  const breakToday = breakMinutes(day);
+  const status = journeyStatus(day);
+
   const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   useEffect(() => {
