@@ -61,14 +61,17 @@ export const Route = createFileRoute("/")({
   component: TodayPage,
 });
 
+// Tons levemente suavizados: mantêm a identidade/diferenciação de cada
+// registro, porém menos intensos visualmente.
 const PUNCH_COLORS: Record<PunchType, string> = {
-  entrada: "bg-success text-primary-foreground",
-  saida_almoco: "bg-warning text-primary-foreground",
-  volta_almoco: "bg-warning text-primary-foreground",
-  saida_lanche: "bg-info text-primary-foreground",
-  volta_lanche: "bg-info text-primary-foreground",
-  saida: "bg-danger text-primary-foreground",
+  entrada: "bg-success/80 text-primary-foreground",
+  saida_almoco: "bg-warning/80 text-primary-foreground",
+  volta_almoco: "bg-warning/70 text-primary-foreground",
+  saida_lanche: "bg-info/80 text-primary-foreground",
+  volta_lanche: "bg-info/70 text-primary-foreground",
+  saida: "bg-danger/80 text-primary-foreground",
 };
+
 
 const QUICK_JUSTIFICATIONS = [
   "Sem papel no relógio de ponto",
