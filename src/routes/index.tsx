@@ -402,6 +402,16 @@ function TodayPage() {
           Jornada de hoje
         </h2>
         <div className="rounded-xl bg-card p-4 space-y-1 text-sm">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Situação</span>
+            <span className="text-foreground font-medium text-right">
+              {status === "empty"
+                ? "Sem registros hoje"
+                : status === "in_progress"
+                  ? "⏳ Jornada em andamento (registro incompleto)"
+                  : "✅ Jornada concluída"}
+            </span>
+          </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Regime</span>
             <span className="text-foreground font-medium">
@@ -417,18 +427,32 @@ function TodayPage() {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Total registrado</span>
+            <span className="text-muted-foreground">Intervalo registrado</span>
             <span className="text-foreground font-medium">
-              {workedMinutes(day) === null ? "—" : formatMinutes(workedMinutes(day)!)}
+              {breakToday === null ? "—" : formatMinutes(breakToday)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Tempo trabalhado</span>
+            <span className="text-foreground font-medium">
+              {worked === null ? "—" : formatMinutes(worked)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Diferença</span>
+            <span className="text-foreground font-medium">
+              {worked === null
+                ? "—"
+                : formatMinutes(worked - journey.expectedMinutes)}
             </span>
           </div>
           {journey.overtimeEnabled && overtimeAllowed(shift) ? (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Saldo</span>
+              <span className="text-muted-foreground">Saldo de horas extras</span>
               <span className="text-foreground font-medium">
-                {workedMinutes(day) === null
+                {worked === null
                   ? "—"
-                  : formatMinutes(workedMinutes(day)! - journey.expectedMinutes)}
+                  : formatMinutes(worked - journey.expectedMinutes)}
               </span>
             </div>
           ) : (
@@ -438,9 +462,16 @@ function TodayPage() {
                 : "Cálculo de horas extras desativado. Ative em Ajustes se desejar."}
             </p>
           )}
+          {worked === null && status !== "empty" && (
+            <p className="pt-1 text-xs text-muted-foreground">
+              Registro incompleto — o cálculo só é concluído com Entrada e Saída
+              registradas.
+            </p>
+          )}
           <p className="pt-2 text-[11px] text-muted-foreground">
             Ferramenta de controle e organização pessoal da jornada. Não representa
             apuração oficial nem garantia de pagamento.
+
           </p>
         </div>
       </section>
