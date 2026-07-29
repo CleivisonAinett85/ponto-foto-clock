@@ -2,8 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { PhotoViewer } from "@/components/photo-viewer";
 import {
   type DayRecords,
+  type PunchType,
+
   type Shift,
   type Shift1236Variant,
   getMonth,
@@ -47,6 +50,8 @@ function CalendarPage() {
   const [month, setMonth] = useState(now.getMonth());
   const [data, setData] = useState<Record<string, DayRecords>>({});
   const [selected, setSelected] = useState<{ key: string; day: DayRecords } | null>(null);
+  const [photo, setPhoto] = useState<{ type: PunchType; src: string; time: string } | null>(null);
+
   const [shift, setShiftState] = useState<Shift>("1");
   const [variant, setVariant] = useState<Shift1236Variant>("diurno");
   const [snack, setSnack] = useState(false);
