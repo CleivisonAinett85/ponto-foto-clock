@@ -315,54 +315,72 @@ function TodayPage() {
           const back = returnPunch(type);
           const breakOpen = !!rem && !(back && day[back]);
           return (
-            <button
+            <div
               key={type}
-              onClick={() => handlePunchTap(type)}
-              className={`w-full rounded-2xl px-5 py-5 flex items-center justify-between shadow-lg active:scale-[0.98] transition ${PUNCH_COLORS[type]}`}
+              className={`rounded-2xl shadow-md ${PUNCH_COLORS[type]}`}
             >
-              <div className="flex items-center gap-4">
-                {record?.kind === "justification" ? (
-                  <FileText className="h-7 w-7" />
-                ) : (
-                  <Camera className="h-7 w-7" />
-                )}
-                <div className="text-left">
-                  <div className="text-lg font-bold leading-tight flex items-center gap-2">
-                    {labels[type]}
-                    {breakOpen && rem!.minutesBefore > 0 && (
-                      <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
-                        ⏰ {rem!.minutesBefore} min
-                      </span>
-                    )}
-                  </div>
-                  {record && (
-                    <div className="text-sm opacity-90">
-                      {record.kind === "justification" ? "📄" : "📷"} Registrado às{" "}
-                      {formatTime(record.time)}
-                      {record.kind === "justification" &&
-                        ` • Justificativa: ${record.justification}`}
-                    </div>
+              <button
+                onClick={() => handlePunchTap(type)}
+                className="w-full rounded-2xl px-5 py-5 flex items-center justify-between active:scale-[0.98] transition"
+              >
+                <div className="flex items-center gap-4">
+                  {record?.kind === "justification" ? (
+                    <FileText className="h-7 w-7" />
+                  ) : (
+                    <Camera className="h-7 w-7" />
                   )}
-                  {breakOpen && (
-                    <div className="text-sm opacity-90">
-                      ⏰ Retorno previsto às {formatClock(rem!.returnAt)}
-                      {rem!.minutesBefore > 0 && (
-                        <> • 🔔 Lembrete às {formatClock(rem!.notifyAt)}</>
+                  <div className="text-left">
+                    <div className="text-lg font-bold leading-tight flex items-center gap-2">
+                      {labels[type]}
+                      {breakOpen && rem!.minutesBefore > 0 && (
+                        <span className="rounded-full bg-background/25 px-2 py-0.5 text-xs font-semibold">
+                          ⏰ {rem!.minutesBefore} min
+                        </span>
                       )}
                     </div>
-                  )}
+                    {record && (
+                      <div className="text-sm opacity-90">
+                        {record.kind === "justification" ? "📄" : "📷"} Registrado às{" "}
+                        {formatTime(record.time)}
+                        {record.kind === "justification" &&
+                          ` • Justificativa: ${record.justification}`}
+                      </div>
+                    )}
+                    {breakOpen && (
+                      <div className="text-sm opacity-90">
+                        ⏰ Retorno previsto às {formatClock(rem!.returnAt)}
+                        {rem!.minutesBefore > 0 && (
+                          <> • 🔔 Lembrete às {formatClock(rem!.notifyAt)}</>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+
+                {record && (
+                  <div className="bg-background/25 rounded-full p-2">
+                    <Check className="h-6 w-6" strokeWidth={3} />
+                  </div>
+                )}
+              </button>
 
               {record && (
-                <div className="bg-background/25 rounded-full p-2">
-                  <Check className="h-6 w-6" strokeWidth={3} />
+                <div className="px-4 pb-4 -mt-1">
+                  <button
+                    onClick={() => setEvidence(type)}
+                    className="w-full rounded-xl bg-background/20 px-3 py-2 text-xs font-semibold active:opacity-80 transition"
+                  >
+                    {record.kind === "photo"
+                      ? "📷 Ver evidência"
+                      : "📄 Ver justificativa"}
+                  </button>
                 </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
+
 
       {permission === "denied" && (
         <div className="mx-5 mt-4 rounded-xl bg-card p-4 text-sm text-muted-foreground">
