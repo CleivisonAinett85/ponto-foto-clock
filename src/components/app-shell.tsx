@@ -61,8 +61,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           />
         </>
       )}
-      <main className="relative flex-1 pb-24 max-w-md w-full mx-auto">{children}</main>
-      <nav className="fixed bottom-0 inset-x-0 border-t border-border bg-card/95 backdrop-blur">
+      <main className="relative flex-1 pb-44 max-w-md w-full mx-auto">{children}</main>
+      <div className="fixed bottom-16 inset-x-0 z-30 pointer-events-none">
+        <AdSlot />
+      </div>
+      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur">
+
         <div className="max-w-md mx-auto grid grid-cols-3">
           {NAV.map(({ to, label, icon: Icon }) => {
             const active = pathname === to;
