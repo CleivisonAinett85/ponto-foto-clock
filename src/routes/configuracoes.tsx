@@ -24,10 +24,16 @@ import {
   blendedBackground,
   isLightColor,
   type JourneySettings,
+  type JourneyMode,
+  type JourneyTimes,
   defaultJourney,
   getJourney,
   setJourney,
   overtimeAllowed,
+  expectedFromTimes,
+  DEFAULT_EXPECTED_MINUTES,
+  DEFAULT_JOURNEY_TIMES,
+
   formatMinutes,
 } from "@/lib/ponto-storage";
 
@@ -87,6 +93,30 @@ function SettingsPage() {
     setJourneyState(next);
     await setJourney(shift, next);
   };
+
+  const changeJourneyMode = async (mode: JourneyMode) => {
+    if (mode === "previa") {
+      await updateJourney({
+        mode,
+        expectedMinutes: DEFAULT_EXPECTED_MINUTES[shift],
+      });
+    } else if (mode === "outro") {
+      const preset = journey.presetShift ?? shift;
+      await updateJourney({
+        mode,
+        presetShift: preset,
+        expectedMinutes: DEFAULT_EXPECTED_MINUTES[preset],
+      });
+    } else {
+      const times = journey.times ?? DEFAULT_JOURNEY_TIMES[shift];
+      await updateJourney({
+        mode,
+        times,
+        expectedMinutes: expectedFromTimes(times),
+      });
+    }
+  };
+
 
   const change = async (s: Shift) => {
     setShiftState(s);
