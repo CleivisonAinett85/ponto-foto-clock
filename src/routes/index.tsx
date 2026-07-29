@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Check, Camera, FileText, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { PhotoViewer } from "@/components/photo-viewer";
+
 import {
   SHIFT_LABELS,
   type DayRecords,
@@ -125,6 +127,8 @@ function TodayPage() {
   const [permission, setPermission] = useState<string>("default");
   const [journey, setJourneyState] = useState<JourneySettings>(() => defaultJourney("1"));
   const [welcome, setWelcome] = useState(false);
+  const [evidence, setEvidence] = useState<PunchType | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const labels = getPunchLabels(shift, variant);
