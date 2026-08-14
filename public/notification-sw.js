@@ -1,6 +1,14 @@
-/* PontoFoto — service worker dedicado a notificações de retorno do intervalo.
-   Não faz cache de HTML/assets e não intercepta requisições (sem handler de fetch),
-   portanto não afeta atualizações do app nem o preview. */
+const CACHE_NAME = "ponto-foto-app-shell-v1";
+const APP_SHELL = [
+  "/",
+  "/index.html",
+  "/favicon.png",
+  "/favicon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/icons.svg",
+  "/manifest.webmanifest",
+];
 
 const timers = new Map();
 
@@ -17,8 +25,8 @@ function fire(reminder) {
   return self.registration
     .getNotifications({ tag: reminder.id })
     .then((existing) => {
-      if (existing.length) return; // já notificado
-      return self.registration.showNotification("⏰ Hora de voltar do almoço!", {
+      if (existing.length) return;
+      return self.registration.showNotification("⏰ Hora de voltar do intervalo!", {
         body: `Seu retorno está previsto para ${reminder.returnLabel}.`,
         tag: reminder.id,
         renotify: false,
@@ -38,15 +46,41 @@ function schedule(reminder) {
     fire(reminder);
     return;
   }
-  // Timer dentro do SW: sobrevive ao fechamento da aba enquanto o SW estiver vivo.
-  timers.set(
-    reminder.id,
-    setTimeout(() => fire(reminder), delay),
-  );
+  timers.set(reminder.id, setTimeout(() => fire(reminder), delay));
 }
 
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(APP_SHELL.map((url) => cache.add(url))),
+    ).then(() => self.skipWaiting()),
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key)),
+      ),
+    ).then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+      if (response.ok && new URL(event.request.url).origin === self.location.origin) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+      }
+      return response;
+    }).catch(() => caches.match("/"))),
+  );
+});
 
 self.addEventListener("message", (event) => {
   const data = event.data || {};
@@ -60,8 +94,7 @@ self.addEventListener("message", (event) => {
   }
   if (data.type === "CANCEL_REMINDER") {
     clearTimer(data.id);
-    self.registration
-      .getNotifications({ tag: data.id })
+    self.registration.getNotifications({ tag: data.id })
       .then((ns) => ns.forEach((n) => n.close()))
       .catch(() => {});
   }

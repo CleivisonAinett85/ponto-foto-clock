@@ -165,20 +165,43 @@ export async function requestNotificationPermission(): Promise<PermissionState> 
  */
 export async function checkDueReminders(): Promise<void> {
   if (notificationPermission() !== "granted") return;
+
+  // A aba ativa é o caminho mais confiável no Android: o Service Worker pode
+  // estar suspenso e não receber uma mensagem a tempo. A promessa de
+  // showNotification só resolve quando o navegador aceitou a notificação;
+  // portanto o lembrete continua pendente se a exibição falhar.
+  const registration = await ensureServiceWorker();
+  if (!registration) return;
+
   const all = await getReminders();
   const now = Date.now();
   for (const r of Object.values(all)) {
     if (r.status !== "pending" || r.minutesBefore <= 0) continue;
     if (r.notifyAt > now) continue;
     if (now > r.returnAt + 60 * 60 * 1000) {
-      // muito atrasado: encerra sem notificar
+      // Muito atrasado: encerra sem notificar.
       await markFired(r.id);
       continue;
     }
-    postToSW({
-      type: "FIRE_NOW",
-      reminder: { id: r.id, notifyAt: r.notifyAt, returnLabel: formatClock(r.returnAt) },
-    });
-    await markFired(r.id);
+
+    try {
+      const existing = await registration.getNotifications({ tag: r.id });
+      if (existing.length === 0) {
+        await registration.showNotification("⏰ Hora de voltar do intervalo!", {
+          body: `Seu retorno está previsto para ${formatClock(r.returnAt)}.`,
+          tag: r.id,
+          renotify: false,
+          requireInteraction: true,
+          icon: "/icon-192.png",
+          badge: "/icon-192.png",
+          data: { id: r.id },
+        });
+      }
+      // Só persiste fired depois que showNotification resolveu ou já encontrou
+      // uma notificação com a mesma tag.
+      await markFired(r.id);
+    } catch {
+      // Permanece pending para uma nova tentativa no próximo ciclo.
+    }
   }
 }
